@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Restless.Converters.Demo", "Restless.Converters.Demo\Restless.Converters.Demo.csproj", "{42B99658-911F-4A22-9FFC-865A685223F0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Restless.Converters", "Restless.Converters\Restless.Converters.csproj", "{D2423046-9C09-43F6-B26D-5DD611AFF1C4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FC4FED4F-E905-4C27-AAF5-72F6EBED1831}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{42B99658-911F-4A22-9FFC-865A685223F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42B99658-911F-4A22-9FFC-865A685223F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42B99658-911F-4A22-9FFC-865A685223F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42B99658-911F-4A22-9FFC-865A685223F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2423046-9C09-43F6-B26D-5DD611AFF1C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2423046-9C09-43F6-B26D-5DD611AFF1C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2423046-9C09-43F6-B26D-5DD611AFF1C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2423046-9C09-43F6-B26D-5DD611AFF1C4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {642EEC33-BAA8-438D-BDE4-1CE94E568483}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,26 @@
+{
+  "name": "omnidesigner-skill",
+  "version": "1.1.0",
+  "description": "OmniDesigner Visual UI Designer Skill",
+  "author": "OmniDesigner Team",
+  "license": "MIT",
+
+  "systemPrompt": "## OmniDesigner Skill\n\nYou are an expert in Qt UI design and Python GUI development.\n\n### When to Use\nUse OmniDesigner when user mentions:\n- Qt .ui files\n- Python GUI (PyQt, tkinter, wxPython)\n- UI design, interface layout, visual editing\n- Keywords: \"design .ui\", \"edit Qt\", \"modify UI\", \"adjust widget\"\n\n### Workflow\n1. Ask user if they want to open OmniDesigner\n2. If yes, call launchOmniDesigner()\n3. User edits visually\n4. Continue with code generation\n\n### Example\nUser: \"Design a Qt UI\"\nResponse: \"Would you like to open OmniDesigner for visual editing?\"\nUser: \"Yes\"\nAction: launchOmniDesigner()",
+
+  "tools": [
+    {
+      "name": "launchOmniDesigner",
+      "description": "Launch OmniDesigner visual UI editor. Use when user wants to design or edit Qt .ui files, Python GUI interfaces.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filePath": { "type": "string", "description": "Optional: Path to .ui file to open" }
+        }
+      }
+    }
+  ],
+
+  "requirements": {
+    "node": ">=18.0.0"
+  }
+}

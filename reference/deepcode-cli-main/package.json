@@ -1,0 +1,68 @@
+{
+  "name": "@vegamo/deepcode-cli",
+  "version": "0.1.19",
+  "description": "Deep Code CLI - Vibe coding for the deepseek-v4 model in your terminal",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lessweb/deepcode-cli.git"
+  },
+  "homepage": "https://deepcode.vegamo.cn",
+  "bin": {
+    "deepcode": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist/cli.js",
+    "docs/tools/**",
+    "docs/prompts/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ./ --noEmit",
+    "bundle": "esbuild ./src/cli.tsx --bundle --platform=node --format=esm --target=node18 --outfile=dist/cli.js --banner:js=\"#!/usr/bin/env node\" --jsx=automatic --jsx-import-source=react --packages=external --log-override:empty-import-meta=silent",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write 'src/**/*.{ts,tsx}'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx}'",
+    "check": "npm run typecheck && npm run lint && npm run format:check",
+    "build": "npm run check && npm run bundle && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "test": "tsx --test src/tests/*.test.ts",
+    "test:single": "tsx --test",
+    "prepack": "npm run build",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "ejs": "^5.0.2",
+    "gradient-string": "^3.0.0",
+    "gray-matter": "^4.0.3",
+    "ignore": "^7.0.5",
+    "ink": "^7.0.1",
+    "ink-gradient": "^4.0.0",
+    "openai": "^6.35.0",
+    "react": "^19.2.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/ejs": "^3.1.5",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "esbuild": "^0.28.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
+    "prettier": "^3.8.3",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.2"
+  }
+}

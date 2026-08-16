@@ -1,0 +1,23 @@
+[package]
+name = "omni-ai-server"
+version = "0.1.0"
+edition = "2021"
+description = "OmniDER AI backend (Rust core, DeepSeek V4)"
+license = "GPL-3.0-only"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+bytes = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+futures-util = "0.3"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[profile.release]
+opt-level = 2

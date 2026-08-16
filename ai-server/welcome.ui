@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>900</width><height>640</height></rect>
+  </property>
+  <property name="windowTitle"><string>DeepUI Designer - 深界设计器</string></property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainLayout">
+    <property name="spacing"><number>0</number></property>
+    <property name="leftMargin"><number>0</number></property>
+    <property name="topMargin"><number>0</number></property>
+    <property name="rightMargin"><number>0</number></property>
+    <property name="bottomMargin"><number>0</number></property>
+    <item>
+     <widget class="QWidget" name="heroBanner">
+      <property name="minimumSize"><size><width>0</width><height>220</height></size></property>
+      <property name="styleSheet"><string notr="true">background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #007acc,stop:1 #005a9e);</string></property>
+      <layout class="QVBoxLayout" name="heroLayout">
+       <item alignment="Qt::AlignCenter"><widget class="QLabel" name="heroIcon">
+        <property name="text"><string>D</string></property>
+        <property name="styleSheet"><string notr="true">font-size:56px;font-weight:bold;color:white;background:rgba(255,255,255,0.15);border-radius:28px;padding:16px 24px;</string></property></widget></item>
+       <item alignment="Qt::AlignCenter"><widget class="QLabel" name="heroTitle">
+        <property name="text"><string>DeepUI Designer</string></property>
+        <property name="styleSheet"><string notr="true">font-size:32px;font-weight:bold;color:white;</string></property></widget></item>
+       <item alignment="Qt::AlignCenter"><widget class="QLabel" name="heroSubtitle">
+        <property name="text"><string>深界设计器 — AI 驱动的现代化 UI 设计工具</string></property>
+        <property name="styleSheet"><string notr="true">font-size:14px;color:rgba(255,255,255,0.75);</string></property></widget></item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="featuresPanel">
+      <property name="styleSheet"><string notr="true">QWidget#featuresPanel{background:palette(window);}</string></property>
+      <layout class="QHBoxLayout" name="featuresLayout">
+       <property name="spacing"><number>16</number></property>
+       <property name="leftMargin"><number>24</number></property>
+       <property name="topMargin"><number>16</number></property>
+       <property name="rightMargin"><number>24</number></property>
+       <property name="bottomMargin"><number>16</number></property>
+       <item><widget class="QFrame" name="cardAI">
+        <property name="styleSheet"><string notr="true">QFrame#cardAI{background:palette(base);border-radius:8px;border:1px solid palette(mid);}QFrame#cardAI:hover{border-color:#007acc;}</string></property>
+        <layout class="QVBoxLayout" name="cardAILayout">
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardAIIcon"><property name="text"><string>AI</string></property><property name="styleSheet"><string notr="true">font-size:28px;font-weight:bold;color:#007acc;</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardAITitle"><property name="text"><string>AI 智能助手</string></property><property name="styleSheet"><string notr="true">font-size:14px;font-weight:bold;color:palette(text);</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardAIDesc"><property name="text"><string>自然语言描述需求，AI 实时修改 UI 界面</string></property><property name="styleSheet"><string notr="true">font-size:11px;color:palette(placeholder-text);</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        </layout>
+       </widget></item>
+       <item><widget class="QFrame" name="cardExport">
+        <property name="styleSheet"><string notr="true">QFrame#cardExport{background:palette(base);border-radius:8px;border:1px solid palette(mid);}QFrame#cardExport:hover{border-color:#007acc;}</string></property>
+        <layout class="QVBoxLayout" name="cardExportLayout">
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardExportIcon"><property name="text"><string>&lt;/&gt;</string></property><property name="styleSheet"><string notr="true">font-size:28px;font-weight:bold;color:#4caf84;</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardExportTitle"><property name="text"><string>多格式导出</string></property><property name="styleSheet"><string notr="true">font-size:14px;font-weight:bold;color:palette(text);</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardExportDesc"><property name="text"><string>一键导出 HTML / .ui 文件，保留完整样式布局</string></property><property name="styleSheet"><string notr="true">font-size:11px;color:palette(placeholder-text);</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        </layout>
+       </widget></item>
+       <item><widget class="QFrame" name="cardEditor">
+        <property name="styleSheet"><string notr="true">QFrame#cardEditor{background:palette(base);border-radius:8px;border:1px solid palette(mid);}QFrame#cardEditor:hover{border-color:#007acc;}</string></property>
+        <layout class="QVBoxLayout" name="cardEditorLayout">
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardEditorIcon"><property name="text"><string>Qt</string></property><property name="styleSheet"><string notr="true">font-size:28px;font-weight:bold;color:#e0556a;</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardEditorTitle"><property name="text"><string>原生 Qt 设计</string></property><property name="styleSheet"><string notr="true">font-size:14px;font-weight:bold;color:palette(text);</string></property></widget></item>
+         <item alignment="Qt::AlignCenter"><widget class="QLabel" name="cardEditorDesc"><property name="text"><string>完整 Qt Widgets 组件库，拖拽式可视化搭建</string></property><property name="styleSheet"><string notr="true">font-size:11px;color:palette(placeholder-text);</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        </layout>
+       </widget></item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="ctaPanel">
+      <property name="styleSheet"><string notr="true">QWidget#ctaPanel{background:palette(window);}</string></property>
+      <layout class="QVBoxLayout" name="ctaLayout">
+       <item alignment="Qt::AlignCenter"><widget class="QPushButton" name="btnStart">
+        <property name="text"><string>开始使用</string></property>
+        <property name="minimumSize"><size><width>180</width><height>40</height></size></property>
+        <property name="styleSheet"><string notr="true">QPushButton{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #007acc,stop:1 #005a9e);color:white;border:none;border-radius:6px;font-size:14px;font-weight:bold;}QPushButton:hover{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0088e0,stop:1 #0068b0);}QPushButton:pressed{background:#005a9e;}</string></property></widget></item>
+       <item alignment="Qt::AlignCenter"><widget class="QLabel" name="versionLabel">
+        <property name="text"><string>v1.0.0 · 中文本地化 · AI 驱动 · 开源项目</string></property>
+        <property name="styleSheet"><string notr="true">color:palette(placeholder-text);font-size:11px;</string></property></widget></item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+</ui>
