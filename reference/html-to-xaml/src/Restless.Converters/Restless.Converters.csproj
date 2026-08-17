@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Restless.Converters</AssemblyName>
+    <AssemblyTitle>Restless.Converters</AssemblyTitle>
+    <Authors>Restless Animal Development</Authors>
+    <Company>Restless Animal Development</Company>
+    <Copyright>Copyright © 2024 Restless Animal Development</Copyright>
+    <Description>Provides html to xaml conversion and custom paste handling that enables you to copy/paste (or drag/drop) information from a web site into a Rich Text Box.</Description>
+    <OutputType>Library</OutputType>
+    <PackageId>Restless.Converters</PackageId>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/victor-david/restless-converters</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>converters html xaml bitmap drag drop rich text box</PackageTags>
+    <Platforms>AnyCPU</Platforms>
+    <RepositoryUrl>https://github.com/victor-david/restless-converters</RepositoryUrl>
+    <RootNamespace>Restless.Converters</RootNamespace>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Title>Restless Converters</Title>
+    <UseWPF>true</UseWPF>
+    <Version>1.0.4</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>Restless.Converters.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.59" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../docs/README.md" Pack="True" PackagePath=""/>
+  </ItemGroup>
+
+</Project>

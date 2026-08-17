@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
     QDesigner app(argc, argv);
 
-    // 读取语言配置 deepui.json（位于 exe 同目录）
+    // 语言配置放 deepui.json 里，跟 exe 同目录
     const QString appDir = QCoreApplication::applicationDirPath();
     QString preferredLanguage;
     QFile configFile(appDir + "/deepui.json");
@@ -31,20 +31,20 @@ int main(int argc, char *argv[])
         configFile.close();
     }
 
-    // 确定目标语言：配置优先，否则跟随系统
+    // 语言优先级：配置里写了用配置的，否则跟系统走
     const QLocale targetLocale = preferredLanguage.isEmpty()
         ? QLocale::system()
         : QLocale(preferredLanguage);
 
-    // 加载翻译 — 直接用完整路径，避免 QTranslator::load 的文件名解析问题
+    // 加载翻译；路径给全，免得 QTranslator 自己解析文件名出错
     QTranslator qtTranslator, qtbaseTranslator, designerTranslator;
     const QStringList transDirs = {
-        appDir + "/translations",                                       // 部署目录
-        "C:/Users/38820/omnider-build/Qt/6.8.0/msvc2022_64/translations", // Qt SDK (fallback)
-        QLibraryInfo::path(QLibraryInfo::TranslationsPath),             // Qt 内置路径
+        appDir + "/translations",                                       // 发布时拷过去的翻译
+        "C:/Qt/6.8.0/msvc2022_64/translations",                          // 本机 Qt SDK 的翻译（兜底）
+        QLibraryInfo::path(QLibraryInfo::TranslationsPath),             // Qt 自己算出来的翻译路径
     };
 
-    // 构造递减的 locale 名称：zh_Hans_CN → zh_CN → zh
+    // locale 名从长到短逐级试：zh_Hans_CN → zh_CN → zh
     QStringList locNames;
     const QStringList uiLangs = targetLocale.uiLanguages();
     for (const QString &lang : uiLangs) {
@@ -81,11 +81,11 @@ int main(int argc, char *argv[])
     }
     QGuiApplication::setQuitOnLastWindowClosed(false);
 
-    // 启动 AI 后端服务（API Key 通过 Web 界面 Settings 配置，存储在 .env 文件）
+    // 启动 AI 后端；API Key 在网页 Settings 里配，存进 .env
     NodeServer nodeServer;
     nodeServer.start();
 
-    // 确保退出时释放端口
+    // 退出前把后端停掉，别占着 9527
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&nodeServer]() {
         nodeServer.stop();
     });

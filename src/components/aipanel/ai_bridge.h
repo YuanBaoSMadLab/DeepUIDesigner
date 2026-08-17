@@ -1,5 +1,4 @@
-// Omni设计师 - AI Bridge
-// C++ ↔ JS 桥接，通过 QWebChannel 暴露 UI 状态给 Web 页面
+// AI Bridge：C++ 和 JS 之间的桥，用 QWebChannel 把 UI 状态暴露给前端页面
 
 #ifndef AI_BRIDGE_H
 #define AI_BRIDGE_H
@@ -26,7 +25,7 @@ public:
     void setSelectedElement(const QString &elementXml);
     void notifyStateChanged();
 
-    // 从 Designer 回调
+    // Designer 那边回调进来的入口
     void onActiveFormWindowChanged(QDesignerFormWindowInterface *fw);
     void onSelectionChanged();
 
@@ -42,13 +41,13 @@ signals:
     void stateChanged();
 
 public slots:
-    // JS 可调用的方法
+    // 前端 JS 可以直接调用的方法
     QString getUiFilePath();
     QString getUiFileContent();
     QString getSelectedElement();
     QString getObjectTree();
-    void reloadForm(); // AI 修改文件后通知 Designer 刷新
-    QString refreshDesigner(); // JS 可调，返回状态
+    void reloadForm(); // AI 改完文件后叫 Designer 重新加载
+    QString refreshDesigner(); // JS 也能调，返回刷新结果
 
 private:
     QString readFileContent(const QString &path) const;

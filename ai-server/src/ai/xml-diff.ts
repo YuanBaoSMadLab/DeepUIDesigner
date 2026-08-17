@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 
-/** 备份文件后缀 */
 const BACKUP_SUFFIX = ".omniback";
 const MAX_BACKUPS = 5;
 
@@ -64,7 +63,6 @@ export function applyChanges(
   xmlPatch: string
 ): { success: boolean; error?: string } {
   try {
-    // 创建备份
     createBackup(uiFilePath);
 
     let content = fs.readFileSync(uiFilePath, "utf-8");
@@ -134,7 +132,6 @@ function applyPropertyChange(
   propertyName: string,
   newValue: string
 ): string {
-  // 查找指定 widget 块
   const widgetPattern = `<widget[^>]*name="${escapeRegex(widgetName)}"[^>]*>`;
   const widgetRegex = new RegExp(`(${widgetPattern}[\\s\\S]*?)(</widget>)`, "g");
   const widgetMatch = widgetRegex.exec(content);
@@ -147,7 +144,6 @@ function applyPropertyChange(
   const widgetEnd = widgetMatch[2];
   const widgetStart = content.indexOf(widgetBlock);
 
-  // 在该 widget 块内查找同名 property
   const propRegex = new RegExp(
     `(<property\\s+name="${escapeRegex(propertyName)}"[^>]*>[\\s\\S]*?</property>)`,
     "g"
@@ -188,14 +184,12 @@ function buildPropertyXml(name: string, value: string): string {
   if (value.startsWith("<")) {
     return `<property name="${name}">\n    ${value}\n   </property>`;
   }
-  // 检查是否是数字
   if (/^-?\d+(\.\d+)?$/.test(value)) {
     return `<property name="${name}">\n    <number>${value}</number>\n   </property>`;
   }
-  // 检查是否是布尔
   if (value === "true" || value === "false") {
     return `<property name="${name}">\n    <bool>${value}</bool>\n   </property>`;
   }
-  // 默认当作字符串
+  // 剩下的都当字符串
   return `<property name="${name}">\n    <string>${escapeXml(value)}</string>\n   </property>`;
 }

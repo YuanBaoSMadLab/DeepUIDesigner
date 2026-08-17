@@ -121,7 +121,7 @@ Before calling ui_write, call ui_read first to understand the existing file stru
   },
 ];
 
-/** 将内部 ChatMessage 转为 OpenAI SDK 格式，处理 V4 reasoning_content 回传 */
+/** 内部 ChatMessage 转 OpenAI SDK 格式，assistant 消息要带上 reasoning_content（V4 必填，空串也行） */
 export function toOpenAIMessages(messages: ChatMessage[]): ChatCompletionMessageParam[] {
   return messages.map((m) => {
     const base: Record<string, unknown> = {
@@ -185,7 +185,7 @@ export async function streamChat(
           reasoningContent += delta.reasoning_content;
         }
 
-        // 只流式传输 content 到前端（推理过程不展示）
+        // 只把 content 推给前端，reasoning_content 留内部用（思考过程不展示）
         if (typeof delta.content === "string") {
           content += delta.content;
           onChunk({ type: "text", content: delta.content });

@@ -21,31 +21,30 @@ function extractElementName(xml: string): string {
 
 // ---- 分层上下文管理 ----
 interface ContextLayer {
-  /** 固定层：system prompt，永远保留 */
+  /** 固定 system prompt，永远不丢 */
   system: string;
-  /** 项目摘要：文件路径、选中元素等，定期刷新 */
+  /** 文件路径/选中元素摘要，定期刷新 */
   projectSummary: string;
-  /** 工作层：用户消息 + AI 响应 + 工具调用 */
+  /** 工作层：最近的对话消息 + 工具调用，超长会被压缩 */
   working: ChatMessage[];
-  /** 压缩层：最近一次 compaction 的摘要 */
+  /** 最近一次压缩出的摘要，下轮直接注入 */
   compacted: string | null;
-  /** 持久层：跨多次 compaction 累积的关键信息，永不丢失 */
+  /** 跨多次压缩累积的关键历史，只增不减 */
   persistentSummary: string;
-  /** 上次注入项目摘要的回合 */
+  /** 距上次注入项目摘要的轮数 */
   lastSummaryTurn: number;
-  /** 用户的首条消息（任务目标），永远保留 */
+  /** 用户首条消息（任务目标），压缩也不淘汰 */
   initialGoal: string;
 }
 
 const sessions = new Map<string, ContextLayer>();
 // 记录每个 session 的最后活跃时间戳，用于自动清理
 const sessionLastActive = new Map<string, number>();
-// 30 分钟未活动自动清理
+// 30 分钟没动静就清掉，省内存
 const SESSION_TTL_MS = 30 * 60 * 1000;
-// 每 5 分钟执行一次清理
+// 清理定时器每 5 分钟跑一次
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
-// 定期清理过期会话
 setInterval(() => {
   const now = Date.now();
   for (const [key, lastActive] of sessionLastActive) {
@@ -56,9 +55,9 @@ setInterval(() => {
   }
 }, CLEANUP_INTERVAL_MS).unref(); // unref 让定时器不阻塞进程退出
 
-// 每 N 轮工具调用后，重新注入项目上下文防止失真
+// 每 N 轮对话重注一次项目摘要，防止上下文里项目信息过时
 const REINJECT_INTERVAL = 5;
-// 上下文软上限（DeepSeek 1M，留余量）
+// 上下文软上限（DeepSeek 1M 窗口，留点余量）
 const TOKEN_SOFT_LIMIT = 800_000;
 
 function estimateTokens(text: string): number {
@@ -113,8 +112,7 @@ function sse(res: Response, data: Record<string, unknown>) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-/** 压缩工作层：将旧消息替换为摘要，保留最新的 N 对工具调用。
- *  关键：旧消息不会丢弃，而是累积到 persistentSummary 中永久保留。 */
+/** 压缩工作层：旧消息压成摘要并累积进 persistentSummary（历史不丢），工作层只留最近 3 轮对话 */
 function compactLayer(layer: ContextLayer): void {
   const msgs = layer.working;
   if (msgs.length < 6) return;
@@ -134,7 +132,7 @@ function compactLayer(layer: ContextLayer): void {
 
   if (old.length === 0) return;
 
-  // 生成高质量摘要：包含工具调用结果，而非仅仅工具名
+  // 摘要里带上工具调用结果，光记工具名后面看不懂上下文
   const actions: string[] = [];
   for (const m of old) {
     if (m.role === "user") {
@@ -149,7 +147,6 @@ function compactLayer(layer: ContextLayer): void {
       }
       if (parts.length) actions.push(parts.join(" | "));
     } else if (m.role === "tool") {
-      // 工具结果：记录成功/失败
       const short = m.content.substring(0, 120);
       actions.push(`结果: ${short}`);
     }
@@ -157,7 +154,7 @@ function compactLayer(layer: ContextLayer): void {
 
   const newCompact = `[历史摘要: ${actions.join(" → ")}]`;
 
-  // 累积到持久层：旧的 persistentSummary + 新的 compact 合并
+  // 并进持久层（旧的 + 新的）
   if (layer.persistentSummary) {
     layer.persistentSummary = `${layer.persistentSummary}\n${newCompact}`;
   } else {
@@ -184,7 +181,7 @@ router.post("/", async (req: Request, res: Response) => {
   if (!config.apiKey) { res.status(500).json({ error: "No API_KEY" }); return; }
 
   const filePath = context?.uiFilePath || "";
-  // 对话前自动备份：无论 AI 做什么修改，用户都可以一键回到现在这个状态
+  // 对话前自动备份一份，AI 改砸了用户也能一键回到现在这个状态
   createPreChatBackup(filePath);
   const key = sessionId || "default";
   const startTime = Date.now();
@@ -198,9 +195,7 @@ router.post("/", async (req: Request, res: Response) => {
     const systemPrompt = buildSystemPrompt(context);
     const userPrompt = buildUserMessage(message, context);
 
-    // 更新固定层
     layer.system = systemPrompt;
-    // 注入/更新项目摘要
     const selSummary = context.selectedElement
       ? extractElementName(context.selectedElement)
       : "none";
@@ -209,12 +204,12 @@ router.post("/", async (req: Request, res: Response) => {
       : "No file bound.";
     layer.projectSummary = summary;
 
-    // 记录首条消息作为任务目标（永不丢失）
+    // 记住用户第一条消息当任务锚点，压缩淘汰不掉它
     if (!layer.initialGoal && message.trim()) {
       layer.initialGoal = message.substring(0, 300);
     }
 
-    // 构建消息：system + initial goal + persistent + compacted + project + working + 本次消息
+    // 消息组装顺序：system → 任务目标 → 操作历史 → 最近操作 → 项目状态 → 工作层 → 本次提问
     const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }];
 
     // 注入初始任务目标（永不压缩淘汰）
@@ -240,7 +235,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // 定期重新注入项目上下文
+    // 项目摘要按轮数重注
     layer.lastSummaryTurn++;
     if (layer.lastSummaryTurn >= REINJECT_INTERVAL) {
       layer.lastSummaryTurn = 0;
@@ -253,11 +248,10 @@ router.post("/", async (req: Request, res: Response) => {
     messages.push(...layer.working);
     messages.push({ role: "user", content: userPrompt });
 
-    // Token 估算
     let totalTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
     if (totalTokens > TOKEN_SOFT_LIMIT) {
       compactLayer(layer);
-      // 用压缩后的重建，同样注入持久层和目标
+      // 超限后按压缩后的层重建，持久层和目标照样注入
       messages.length = 0;
       messages.push({ role: "system", content: systemPrompt });
       if (layer.initialGoal) {
@@ -324,7 +318,7 @@ router.post("/", async (req: Request, res: Response) => {
     layer.working.push({ role: "user", content: message });
     for (const m of turnMessages) layer.working.push(m);
 
-    // 切工作层上限
+    // 工作层超长就压缩
     while (layer.working.length > 40) {
       compactLayer(layer);
     }

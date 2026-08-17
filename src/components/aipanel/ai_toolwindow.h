@@ -1,5 +1,4 @@
-// Omni设计师 - AI 工具窗口
-// 在属性编辑器下方嵌入 Web 页面作为 AI 聊天面板
+// AI 工具窗口：把 Web 页面嵌在属性编辑器下面当 AI 聊天面板用
 
 #ifndef AI_TOOLWINDOW_H
 #define AI_TOOLWINDOW_H

@@ -1,4 +1,4 @@
-// Omni设计师 - AI Bridge 实现
+// AI Bridge 实现
 
 #include "ai_bridge.h"
 
@@ -57,7 +57,7 @@ void AiBridge::onActiveFormWindowChanged(QDesignerFormWindowInterface *fw)
 {
     if (fw) {
         const QString fileName = fw->fileName();
-        // 不绑定临时文件，等用户保存到正式路径后再绑定
+        // 临时文件先不绑定，等保存到正式路径再说
         if (!fileName.isEmpty() && !isTempFile(fileName)) {
             setUiFilePath(fileName);
         }
@@ -75,7 +75,7 @@ void AiBridge::onSelectionChanged()
     setSelectedElement(xml);
 }
 
-// ---- JS 可调用的槽 ----
+// ---- JS 调用入口 ----
 
 QString AiBridge::getUiFilePath()
 {
@@ -84,7 +84,7 @@ QString AiBridge::getUiFilePath()
 
 QString AiBridge::getUiFileContent()
 {
-    // 每次都重新读取以确保最新
+    // 每次现读，保证拿到的不是旧内容
     if (!m_uiFilePath.isEmpty()) {
         m_uiFileContent = readFileContent(m_uiFilePath);
     }
@@ -93,7 +93,7 @@ QString AiBridge::getUiFileContent()
 
 QString AiBridge::getSelectedElement()
 {
-    // 实时获取当前选中元素
+    // 现算选中元素，别用缓存的
     QString xml = serializeCurrentElement();
     if (!xml.isEmpty()) {
         m_selectedElement = xml;
@@ -103,7 +103,7 @@ QString AiBridge::getSelectedElement()
 
 QString AiBridge::getObjectTree()
 {
-    // 返回空数组；完整实现需要 Qt 内部 API
+    // 先返回空数组；完整对象树要动 Qt 内部 API，暂时没做
     return QStringLiteral("[]");
 }
 
@@ -155,14 +155,14 @@ QString AiBridge::serializeCurrentElement() const
     if (!fw)
         return {};
 
-    // 支持多选：序列化所有选中的控件
+    // 多选时把选中的控件全序列化出来
     QDesignerFormWindowCursorInterface *cursor = fw->cursor();
     if (!cursor)
         return {};
 
     const int count = cursor->selectedWidgetCount();
     if (count == 0) {
-        // 没有选中任何控件，返回当前控件
+        // 一个都没选中就退回光标所在的当前控件
         QWidget *current = cursor->current();
         if (!current) return {};
         return serializeWidget(current);
@@ -180,7 +180,7 @@ QString AiBridge::serializeCurrentElement() const
 
 QString AiBridge::serializeWidget(QWidget *w) const
 {
-    // 生成该控件的基本 XML 表示，包含 AI 识别所需的关键属性
+    // 序列化成 XML，挑 AI 认控件要用的关键属性
     QString result;
     QXmlStreamWriter xml(&result);
     xml.setAutoFormatting(true);
@@ -191,7 +191,7 @@ QString AiBridge::serializeWidget(QWidget *w) const
     xml.writeAttribute(QStringLiteral("class"), QString::fromUtf8(meta->className()));
     xml.writeAttribute(QStringLiteral("name"), w->objectName());
 
-    // ---- 几何 ----
+    // 几何
     xml.writeStartElement(QStringLiteral("property"));
     xml.writeAttribute(QStringLiteral("name"), QStringLiteral("geometry"));
     xml.writeTextElement(QStringLiteral("rect"),
@@ -200,40 +200,35 @@ QString AiBridge::serializeWidget(QWidget *w) const
                              .arg(w->width()).arg(w->height()));
     xml.writeEndElement();
 
-    // ---- 关键识别属性（动态查询） ----
+    // 下面这些是 AI 认控件最常用的属性，动态查一遍，有值才写进 XML
     auto prop = [w](const char *name) -> QVariant {
         return w->property(name);
     };
 
-    // text (QAbstractButton, QLabel, QCheckBox, etc.)
     if (const QVariant v = prop("text"); v.isValid() && !v.toString().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("text"));
         xml.writeTextElement(QStringLiteral("string"), v.toString());
         xml.writeEndElement();
     }
-    // title (QGroupBox, QDockWidget, etc.)
     if (const QVariant v = prop("title"); v.isValid() && !v.toString().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("title"));
         xml.writeTextElement(QStringLiteral("string"), v.toString());
         xml.writeEndElement();
     }
-    // windowTitle (top-level widgets)
     if (const QVariant v = prop("windowTitle"); v.isValid() && !v.toString().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("windowTitle"));
         xml.writeTextElement(QStringLiteral("string"), v.toString());
         xml.writeEndElement();
     }
-    // toolTip
     if (const QVariant v = prop("toolTip"); v.isValid() && !v.toString().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("toolTip"));
         xml.writeTextElement(QStringLiteral("string"), v.toString());
         xml.writeEndElement();
     }
-    // placeholderText (QLineEdit, QTextEdit, etc.)
     if (const QVariant v = prop("placeholderText"); v.isValid() && !v.toString().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("placeholderText"));
@@ -241,7 +236,6 @@ QString AiBridge::serializeWidget(QWidget *w) const
         xml.writeEndElement();
     }
 
-    // styleSheet
     if (!w->styleSheet().isEmpty()) {
         xml.writeStartElement(QStringLiteral("property"));
         xml.writeAttribute(QStringLiteral("name"), QStringLiteral("styleSheet"));

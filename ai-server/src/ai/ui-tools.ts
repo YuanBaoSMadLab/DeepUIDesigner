@@ -164,7 +164,6 @@ export function writeUiFile(
   try {
     if (!filePath) return { success: false, error: "文件路径为空" };
 
-    // 校验 .ui XML 格式
     const validationError = validateUiXml(content);
     if (validationError) {
       return { success: false, error: validationError };
@@ -200,7 +199,6 @@ export function applyEdit(
 
     const content = fs.readFileSync(filePath, "utf-8");
 
-    // 查找指定 name 的 widget
     let nameRegex = new RegExp(
       `<widget[^>]*name="${escapeRegex(widgetName)}"[^>]*>`
     );

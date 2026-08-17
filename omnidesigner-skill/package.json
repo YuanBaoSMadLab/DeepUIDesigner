@@ -1,0 +1,27 @@
+{
+  "name": "omnidesigner-skill",
+  "version": "1.1.0",
+  "description": "OmniDesigner Visual UI Designer Skill for AI Agents",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "postinstall": "node postinstall.js"
+  },
+  "keywords": ["omni", "designer", "qt", "ui", "skill", "ai", "agent", "gui"],
+  "author": "OmniDesigner Team",
+  "license": "MIT",
+  "homepage": "https://github.com/omnidesigner/skill",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/omnidesigner/skill.git"
+  },
+  "files": [
+    "index.js",
+    "skill.json",
+    "SKILL.md",
+    "install.js",
+    "postinstall.js",
+    "README.md",
+    "designer/"
+  ]
+}

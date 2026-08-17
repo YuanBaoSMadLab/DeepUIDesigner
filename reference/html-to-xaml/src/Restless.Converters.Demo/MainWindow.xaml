@@ -1,0 +1,53 @@
+﻿<Window
+    x:Class="Restless.Converters.Demo.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Conversion Test"
+    WindowStartupLocation="CenterScreen"
+    Height="800" Width="1520">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Text="Rich Text Box"/>
+        <RichTextBox
+            x:Name="Rich"
+            Grid.Column="0" Grid.Row="1" Grid.RowSpan="3"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            IsDocumentEnabled="True"/>
+
+        <TextBlock Grid.Column="2" Text="Html Box"/>
+        <TextBox x:Name="TextBoxHtml" Grid.Column="2" Grid.Row="1"/>
+
+        <TextBlock Grid.Column="2" Grid.Row="2" Text="Xaml Box"/>
+        <TextBox x:Name="TextBoxXaml" Grid.Column="2" Grid.Row="3" AllowDrop="False"/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal">
+            <Button Content="Load" Click="ButtonLoadRichTextClick"/>
+            <Button Content="Save" Click="ButtonSaveRichTextClick"/>
+            <Button Content="Images" Click="ButtonAdjustImagesClick" ToolTip="Sets all images in the document to their native size"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Grid.Row="4" Orientation="Horizontal">
+            <Button Content="Load" Click="ButtonLoadHtmlClick"/>
+            <Button Content="Convert" Click="ButtonConvertClick"/>
+            <Button Content="To Rich" Click="ButtonToRichClick"/>
+            <Button Content="Clear Html" Click="ButtonClearHtmlClick"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

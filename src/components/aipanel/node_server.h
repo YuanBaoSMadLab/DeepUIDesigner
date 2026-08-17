@@ -1,5 +1,4 @@
-// Omni设计师 - Node.js AI 服务管理器
-// 在 Designer 启动/关闭时自动启动/停止 AI 后端
+// NodeServer：跟着 Designer 一起启动/关停 AI 后端服务
 
 #ifndef NODE_SERVER_H
 #define NODE_SERVER_H
@@ -18,24 +17,24 @@ public:
     explicit NodeServer(QObject *parent = nullptr);
     ~NodeServer() override;
 
-    /// 启动 Node.js 后端服务，返回 true 表示已触发启动（不保证成功）
+    /// 启动后端服务；返回 true 只代表启动流程已触发，不保证真起来
     bool start();
 
-    /// 停止后端服务
+    /// 停掉后端服务
     void stop();
 
-    /// 是否正在运行
+    /// 现在还跑着吗
     bool isRunning() const;
 
-    /// 设置 API 密钥（通过环境变量传入 Node 进程）
+    /// 设置 API Key（以环境变量形式传给后端进程）
     void setApiKey(const QString &key);
 
-    /// 设置服务器目录路径
+    /// 指定后端服务目录
     void setServerDir(const QString &dir);
 
 signals:
-    void started();          // 服务启动完成（检测到监听端口）
-    void stopped();          // 服务已停止
+    void started();          // 服务真起来了（检测到监听端口才算）
+    void stopped();          // 服务已停
     void errorOccurred(const QString &error);
 
 private slots:

@@ -1,4 +1,4 @@
-// Omni设计师 - AI 工具窗口实现
+// AI 工具窗口实现
 
 #include "ai_toolwindow.h"
 #include "ai_bridge.h"
@@ -11,6 +11,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+// 9527：前端页面和后端服务约好的端口，换端口两边得一起换
 static const char *AI_PANEL_URL = "http://localhost:9527";
 
 QT_BEGIN_NAMESPACE
@@ -31,11 +32,11 @@ AiToolWindow::AiToolWindow(QDesignerFormEditorInterface *core,
 
     setupWebChannel();
 
-    // 页面加载完成后注入桥接脚本
+    // 等页面加载完再初始化桥接
     connect(m_webView, &QWebEngineView::loadFinished,
             this, &AiToolWindow::onPageLoaded);
 
-    // 加载 AI 面板页面
+    // 打开 AI 面板
     m_webView->load(QUrl(QString::fromLatin1(AI_PANEL_URL)));
 }
 
@@ -48,7 +49,7 @@ void AiToolWindow::setupWebChannel()
 void AiToolWindow::onPageLoaded(bool ok)
 {
     if (!ok) {
-        // 重试加载
+        // 没加载出来，3 秒后再试
         QTimer::singleShot(3000, this, [this]() {
             m_webView->load(QUrl(QString::fromLatin1(AI_PANEL_URL)));
         });
@@ -57,7 +58,7 @@ void AiToolWindow::onPageLoaded(bool ok)
 
     injectBridgeScript();
 
-    // 如果有待绑定的文件路径，通知前端
+    // 页面好了，把之前攒下的文件路径补发给前端
     if (!m_pendingFilePath.isEmpty()) {
         notifyFrontendState();
     }
@@ -65,8 +66,8 @@ void AiToolWindow::onPageLoaded(bool ok)
 
 void AiToolWindow::injectBridgeScript()
 {
-    // QWebChannel 桥接已由前端 HTML (qwebchannel.js + initQtBridge) 自行初始化，
-    // 不再需要 C++ 端注入脚本。此方法保留用于后续扩展。
+    // 前端页面自己用 qwebchannel.js + initQtBridge 把桥接初始化好了，
+    // C++ 这边不用再注入脚本；方法留着备用
 }
 
 void AiToolWindow::setUiFilePath(const QString &path)

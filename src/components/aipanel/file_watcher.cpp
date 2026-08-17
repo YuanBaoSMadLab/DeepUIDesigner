@@ -1,4 +1,4 @@
-// Omni设计师 - 文件监控实现
+// FileWatcher 实现
 
 #include "file_watcher.h"
 
@@ -20,7 +20,7 @@ void FileWatcher::watchFile(const QString &path)
     if (path.isEmpty())
         return;
 
-    // 移除旧监听
+    // 只盯当前这一个文件，先清掉旧的
     if (!m_watcher->files().isEmpty()) {
         m_watcher->removePaths(m_watcher->files());
     }
@@ -46,7 +46,7 @@ void FileWatcher::unwatchAll()
 
 void FileWatcher::onFileChanged(const QString &path)
 {
-    // 文件变化后重新添加监听（有些编辑器会删除再创建文件）
+    // 有些编辑器保存是"删了重建"，监听会被冲掉，得重新加上
     if (!m_watcher->files().contains(path)) {
         QFileInfo fi(path);
         if (fi.exists()) {

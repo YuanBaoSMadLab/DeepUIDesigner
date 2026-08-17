@@ -6,15 +6,15 @@ echo =============================================
 
 if not defined QTDIR set QTDIR=C:\Qt\6.8.0\msvc2022_64
 
-if not exist build\DeepUIDesigner.exe (
-    echo [ERROR] build\DeepUIDesigner.exe not found.
+if not exist build\designer.exe (
+    echo [ERROR] build\designer.exe not found.
     echo   Run scripts\build.bat first.
     pause && exit /b 1
 )
 
 :: ---- windeployqt ----
 echo [1/2] Running windeployqt...
-"%QTDIR%\bin\windeployqt.exe" build\DeepUIDesigner.exe --no-system-d3d-compiler --no-compiler-runtime
+"%QTDIR%\bin\windeployqt.exe" build\designer.exe --no-system-d3d-compiler --no-compiler-runtime
 if %ERRORLEVEL% NEQ 0 (
     echo [WARNING] windeployqt failed. Some Qt DLLs may be missing.
 )
@@ -23,11 +23,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo [2/2] Copying AI server...
 if not exist build\ai-server mkdir build\ai-server
 xcopy /E /Y /I /Q ai-server build\ai-server >nul 2>&1
-if exist build\ai-server\node_modules (
-    echo   Removing pre-existing node_modules...
-    rmdir /s /q build\ai-server\node_modules
-)
-:: Copy .env.example if .env doesn't exist
+:: keep ai-server\node_modules - it's the Node.js fallback kernel.
+:: the xcopy above refreshes it; don't delete it here (pack.bat depends on it).
+:: no .env yet? seed it from .env.example
 if not exist build\ai-server\.env (
     if exist build\ai-server\.env.example (
         echo   Creating .env from .env.example (edit to add your API key^)
@@ -44,10 +42,10 @@ echo =============================================
 echo   DEPLOY COMPLETE!
 echo =============================================
 echo.
-echo First-time setup:
-echo   cd build\ai-server
-echo   npm install
-echo   cd ..
-echo   DeepUIDesigner.exe
+echo Deployed:
+echo   designer.exe + Qt DLLs + translations
+echo   ai-server/ (Rust core omni-ai-server.exe + Node fallback)
+echo Run build\designer.exe - AI core auto-starts on port 9527
+echo and stops together with the designer.
 echo.
 pause

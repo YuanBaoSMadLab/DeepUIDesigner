@@ -60,6 +60,17 @@
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
   .modal .actions button { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px; }
   .modal .actions button.primary { background: var(--accent); border-color: var(--accent); color: var(--btn-text); }
+  .settings-section { margin-bottom: 14px; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+  .settings-section .section-title { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 8px; letter-spacing: 0.5px; }
+  .settings-section select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 13px; margin-bottom: 10px; outline: none; }
+  .settings-section select:focus { border-color: var(--accent); }
+  .dropdown { position: relative; }
+  .dropdown-menu { display: none; position: absolute; top: calc(100% + 4px); right: 0; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.35); z-index: 50; overflow: hidden; }
+  .dropdown-menu.open { display: block; }
+  .dropdown-menu a { display: block; padding: 8px 12px; font-size: 12px; color: var(--text); cursor: pointer; white-space: nowrap; }
+  .dropdown-menu a:hover { background: var(--accent); color: var(--btn-text); }
+  .dropdown-menu a.danger { color: var(--error); }
+  .dropdown-menu a.danger:hover { background: var(--error); color: var(--btn-text); }
 </style>
 </head>
 <body>
@@ -69,14 +80,21 @@
   <span class="status-meta" id="aiStatus" style="display:none"></span>
   <span id="elementStatus" style="margin-left:auto;">未选中</span>
 </div>
+<div id="noKey" style="display:none;padding:6px 10px;background:var(--warn-bg);border-bottom:1px solid var(--warn-border);align-items:center;gap:8px"><span style="color:var(--warn-text);flex:1;font-size:12px">未检测到 API 密钥，请点击「设置」进行配置</span><button onclick="openSettings()" style="background:var(--error);border-color:var(--error);color:var(--btn-text)">立即设置</button></div>
 <div class="control-bar">
-<div class="control-bar" id="noKey" style="background:var(--warn-bg);border-bottom:1px solid var(--warn-border);display:none"><span style="color:var(--warn-text);flex:1;font-size:12px">未检测到 API 密钥，请点击右侧「设置」进行配置</span><button onclick="openSettings()" style="background:var(--error);border-color:var(--error);color:var(--btn-text)">立即设置</button></div>
   <span class="metrics" id="metrics">0T | 0ms</span>
   <button onclick="clearChat()">清屏</button>
+  <div class="dropdown" id="toolsDropdown">
+    <button onclick="toggleTools(event)">工具 ▾</button>
+    <div class="dropdown-menu" id="toolsMenu">
+      <a onclick="manualBackup()">创建备份</a>
+      <a onclick="showRevert()">从备份回退</a>
+      <a class="danger" onclick="quickRevertPreChat()">恢复到提问前</a>
+    </div>
+  </div>
+  <button onclick="toggleTheme()" id="themeBtn">亮色</button>
+  <button onclick="openSettings()">设置</button>
   <button onclick="stopGenerating()" id="stopBtn" style="display:none;background:var(--error);border-color:var(--error);color:var(--btn-text)">停止</button>
-  <button onclick="manualBackup()" title="创建手动备份">备份</button><button onclick="showRevert()" title="从备份历史中选择回退">回退</button>
-  <button onclick="quickRevertPreChat()" title="一键恢复到本次提问前的状态" style="background:var(--error);border-color:var(--error);color:var(--btn-text)">恢复到提问前</button>
-  <button onclick="toggleTheme()" id="themeBtn">亮色</button><button onclick="openSettings()">设置</button>
 </div>
 <div class="messages" id="messages">
   <div class="message welcome">OmniDER AI 就绪。打开 .UI 文件并选中元素即可开始。</div>
@@ -86,12 +104,20 @@
   <button id="sendBtn">发送</button>
 </div>
 <div class="modal-overlay" id="settingsModal">
-  <div class="modal">
+  <div class="modal" style="width:420px">
     <h3>设置</h3>
-    <label>API 密钥</label>
-    <input id="setApiKey" type="password" placeholder="sk-..." />
-    <label>模型 (仅支持 DeepSeek)</label>
-    <input id="setModel" type="text" placeholder="deepseek-chat" />
+    <div class="settings-section">
+      <div class="section-title">1. 模型配置</div>
+      <label>模型</label>
+      <select id="setModel"></select>
+      <label>接口地址 (BASE_URL)</label>
+      <input id="setBaseUrl" type="text" placeholder="https://api.deepseek.com" />
+    </div>
+    <div class="settings-section">
+      <div class="section-title">2. API 密钥</div>
+      <label>API 密钥</label>
+      <input id="setApiKey" type="password" placeholder="sk-..." />
+    </div>
     <div class="actions">
       <button onclick="closeSettings()">取消</button>
       <button class="primary" onclick="saveSettings()">保存</button>
@@ -110,7 +136,7 @@
   </div>
 </div>
 <script>
-// ---- QWebChannel 桥接初始化 ----
+// QWebChannel 桥：qt 是 Qt 注入的全局对象，等它的 webChannelTransport 就绪再连，否则轮询重试
 var _bridgeRetries = 0;
 function initQtBridge() {
   if (typeof QWebChannel === 'undefined') {
@@ -195,13 +221,16 @@ async function sendMessage(){
   setW(false);sendBtn.disabled=false;document.getElementById('stopBtn').style.display='none';
 }
 function stopGenerating(){if(_abortCtrl){_abortCtrl.abort();_abortCtrl=null;}}
-function updateM(d,aiel){const s=d.status;if(s==='thinking'){aiStatusEl.style.display='inline';aiStatusEl.textContent=(d.ms||0)+'ms';}else if(s==='done'){setW(false);metricsEl.textContent=(d.tokens||0)+'T | '+(d.timeMs||0)+'ms';setTimeout(()=>{aiStatusEl.style.display='none'},5000);if(window.aiBridge)try{window.aiBridge.refreshDesigner(function(){});}catch(e){}var lastAi=messagesEl.querySelector('.message.ai:last-of-type');if(lastAi&&!lastAi.querySelector('.revert-link')){var rl=document.createElement('div');rl.className='revert-link';rl.style.cssText='font-size:10px;margin-top:2px;color:var(--text2);cursor:pointer';rl.textContent='恢复到此轮对话前';rl.onclick=function(e){e.stopPropagation();quickRevertPreChat();};lastAi.appendChild(rl);}}else if(s==='forcing_tools')aiStatusEl.textContent='重试中...';else if(s.startsWith('tools:')){aiStatusEl.textContent=s.replace('tools:','');setW(true);}else if(s.startsWith('tool:'))aiStatusEl.textContent=(d.ok?'OK ':'FAIL ')+s.replace('tool:','');}
+var TOOL_LABELS={ui_read:'读取文件',ui_edit:'修改文件',ui_write:'写入文件'};
+function updateM(d,aiel){const s=d.status;if(s==='thinking'){aiStatusEl.style.display='inline';aiStatusEl.textContent='思考中 '+(d.ms||0)+'ms';}else if(s==='done'){setW(false);metricsEl.textContent=(d.tokens||0)+'T | '+(d.timeMs||0)+'ms';setTimeout(()=>{aiStatusEl.style.display='none'},5000);if(window.aiBridge)try{window.aiBridge.refreshDesigner(function(){});}catch(e){}var lastAi=messagesEl.querySelector('.message.ai:last-of-type');if(lastAi&&!lastAi.querySelector('.revert-link')){var rl=document.createElement('div');rl.className='revert-link';rl.style.cssText='font-size:10px;margin-top:2px;color:var(--text2);cursor:pointer';rl.textContent='恢复到此轮对话前';rl.onclick=function(e){e.stopPropagation();quickRevertPreChat();};lastAi.appendChild(rl);}}else if(s==='forcing_tools')aiStatusEl.textContent='请使用工具修改文件...';else if(s.startsWith('tools:')){var names=s.replace('tools:','').split(',').map(function(n){return TOOL_LABELS[n]||n;});aiStatusEl.textContent='正在'+names.join('、')+'...';setW(true);}else if(s.startsWith('tool:')){var tn=s.replace('tool:','');aiStatusEl.textContent=(d.ok?'已完成':'失败')+(TOOL_LABELS[tn]?('：'+TOOL_LABELS[tn]):(' '+tn));}}
 function setW(on){statusDot.classList.toggle('working',on);}
 
-async function loadSettings(){try{const r=await fetch(API+'/api/settings');const s=await r.json();if(s.apiKey)document.getElementById('setApiKey').value=s.apiKey;else document.getElementById('noKey').style.display='flex';if(s.model)document.getElementById('setModel').value=s.model;}catch(e){}}
+async function loadSettings(){try{const r=await fetch(API+'/api/settings');const s=await r.json();var sel=document.getElementById('setModel');var models=(s.availableModels&&s.availableModels.length)?s.availableModels:[{value:'deepseek-chat',label:'deepseek-chat'}];sel.innerHTML=models.map(function(m){return '<option value="'+esc(m.value)+'">'+esc(m.label)+'</option>';}).join('');if(s.model){if(!sel.querySelector('option[value="'+s.model+'"]')){var o=document.createElement('option');o.value=s.model;o.textContent=s.model;sel.appendChild(o);}sel.value=s.model;}if(s.baseURL)document.getElementById('setBaseUrl').value=s.baseURL;if(s.apiKey)document.getElementById('setApiKey').value=s.apiKey;else document.getElementById('noKey').style.display='flex';}catch(e){}}
 function openSettings(){settingsModal.classList.add('active');}
 function closeSettings(){settingsModal.classList.remove('active');}
-async function saveSettings(){var k=document.getElementById('setApiKey').value.trim(),m=document.getElementById('setModel').value.trim();await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:k,model:m})});closeSettings();if(k)document.getElementById('noKey').style.display='none';else document.getElementById('noKey').style.display='flex';addSys('设置已保存。重启后生效。');}
+async function saveSettings(){var k=document.getElementById('setApiKey').value.trim(),m=document.getElementById('setModel').value,b=document.getElementById('setBaseUrl').value.trim();await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:k,model:m,baseURL:b})});closeSettings();if(k)document.getElementById('noKey').style.display='none';else document.getElementById('noKey').style.display='flex';addSys('设置已保存，立即生效。');}
+function toggleTools(e){e.stopPropagation();document.getElementById('toolsMenu').classList.toggle('open');}
+document.addEventListener('click',function(e){if(!document.getElementById('toolsDropdown').contains(e.target))document.getElementById('toolsMenu').classList.remove('open');});
 
 window.toggleTheme=function(){document.body.classList.toggle("light");document.getElementById("themeBtn").textContent=document.body.classList.contains("light")?"暗色":"亮色";};
 function refreshDesigner(){if(!window.aiBridge){addErr("刷新失败: Qt桥接未就绪，请稍后重试");return;}try{window.aiBridge.refreshDesigner(function(r){if(r==="OK"||(r&&r.startsWith("OK")))addSys("已刷新");else addErr(r||"刷新失败");});}catch(e){addErr("刷新失败: "+e.message);}}
@@ -223,8 +252,8 @@ function md(t){let h=esc(t);h=h.replace(/```(\w*)\n([\s\S]*?)```/g,'<pre><code>$
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 window.updateUiState=function(d){
-  if(d.uiFilePath){state.uiFilePath=d.uiFilePath;fileStatus.innerHTML='File: <span class="file">'+esc(d.uiFilePath.split(/[/\\\\]/).pop())+'</span>';}
-  if(d.selectedElement!==undefined){state.selectedElement=d.selectedElement;elementStatus.innerHTML=d.selectedElement?'Sel: <span class="sel">'+esc(elName(d.selectedElement))+'</span>':'No selection';}
+  if(d.uiFilePath){state.uiFilePath=d.uiFilePath;fileStatus.innerHTML='文件: <span class="file">'+esc(d.uiFilePath.split(/[/\\\\]/).pop())+'</span>';}
+  if(d.selectedElement!==undefined){state.selectedElement=d.selectedElement;elementStatus.innerHTML=d.selectedElement?'选中: <span class="sel">'+esc(elName(d.selectedElement))+'</span>':'未选中';}
   fetch(API+'/api/ui/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).catch(()=>{});
 };
 init();

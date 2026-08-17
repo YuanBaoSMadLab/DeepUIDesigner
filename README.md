@@ -1,12 +1,12 @@
 # DeepUIDesigner — AI-Powered Qt UI Designer
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSES/GPL-3.0-only.txt)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)]()
-[![Qt](https://img.shields.io/badge/Qt-6.5%2B-green)]()
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)]()
+[![Qt](https://img.shields.io/badge/Qt-6.8-green)]()
 
 > 📖 [中文文档](README-zh.md)
 
-**DeepUIDesigner** (深界设计器 / DeepUI Designer) deeply integrates **Qt Designer**'s visual UI editing capabilities with **Large Language Model** (DeepSeek / OpenAI compatible) AI conversation. Describe your UI requirements in natural language — the AI directly edits `.ui` XML files and refreshes the designer canvas in real time.
+**DeepUIDesigner** (深界设计器) fuses Qt Designer's visual UI editing with a large language model (DeepSeek / OpenAI-compatible). Describe the interface you want in plain language, and the AI edits the `.ui` XML directly — the canvas refreshes live. Think "just tell it what you want".
 
 ---
 
@@ -15,66 +15,49 @@
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
-  - [1. Install Qt SDK](#1-install-qt-sdk)
-  - [2. Install Node.js](#2-install-nodejs)
-  - [3. Build the Project](#3-build-the-project)
-  - [4. Configure AI Backend](#4-configure-ai-backend)
-  - [5. Run](#5-run)
-- [Usage Guide](#usage-guide)
-- [Project Architecture](#project-architecture)
-- [Directory Structure](#directory-structure)
-- [Scripts Reference](#scripts-reference)
-- [Packaging & Release](#packaging--release)
+- [Usage](#usage)
+- [Architecture](#architecture)
+- [Directory Layout](#directory-layout)
+- [Scripts](#scripts)
+- [Packaging](#packaging)
 - [FAQ](#faq)
-- [Tech Stack & Acknowledgements](#tech-stack--acknowledgements)
+- [Tech Stack & Credits](#tech-stack--credits)
 - [License](#license)
 
 ---
 
 ## Features
 
-
-| Feature                      | Description                                                             |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| **Full Qt Designer**         | Widget box, property editor, object inspector, signal/slot editor, layouts |
-| **AI Chat Panel**            | Embedded below the property editor; edit UI via natural language        |
-| **Precision XML Editing**    | Four-level progressive matching + structural validation; only the targeted widget is modified |
-| **Rolling Backups**          | 5-level automatic backups + pre-chat snapshot; one-click revert to pre-chat state |
-| **Multi-language UI**        | 31 languages, switch via Settings → Language                           |
-| **Multi-format Export**      | `.ui` → HTML / JSX / TSX / Vue / XAML                                  |
-| **Dark/Light Adaptive**      | Follows system color palette; no manual toggle needed                   |
+| Feature | What it does |
+| --- | --- |
+| **Full Qt Designer** | Widget box, property editor, object inspector, signal/slot editor, layout tools |
+| **AI Chat Panel** | Lives under the property editor; edit UI by typing what you want |
+| **Precise XML Editing** | 4-level progressive matching + structural validation — only the target widget gets touched |
+| **Rolling Backups** | 5-level auto backups + a pre-chat snapshot; one click gets you back to before the conversation |
+| **Chinese UI** | Simplified Chinese by default (via Qt's translation system) |
+| **Multi-format Export** | `.ui` → HTML / JSX / TSX / Vue / XAML |
+| **Dark/Light Adaptive** | Follows the system palette, nothing to toggle |
 
 ---
 
 ## Requirements
 
-### Required Software
+- **Qt SDK 6.8+** (MSVC 2022, 64-bit) — you **must** tick **Qt Designer (with private headers)** and **Qt WebEngine**
+- **CMake** 3.16+
+- **Ninja** (`pip install ninja`, or bundled with Qt)
+- **Visual Studio 2022** (MSVC C++ compiler)
+- **Rust toolchain** — only needed to build the AI core from source; skip it if you use a release package
+- **Node.js 20+** — optional, only if you want to run the Node fallback backend
 
+### Qt install notes
 
-| Software             | Minimum Version              | Purpose                                  | Download                            |
-| -------------------- | ---------------------------- | ---------------------------------------- | ----------------------------------- |
-| **Qt SDK**           | 6.5+ (MSVC 2022)             | C++ UI framework + Designer private headers | https://www.qt.io/download          |
-| **CMake**            | 3.16+                        | Build system                             | https://cmake.org/download/         |
-| **Ninja**            | Any                          | Build acceleration                       | `pip install ninja` or bundled with Qt |
-| **Visual Studio**    | 2022 Community (2026 recommended) | C++ compiler (MSVC)                      | https://visualstudio.microsoft.com/ |
-| **Node.js**          | 20+                          | AI backend runtime                       | https://nodejs.org/                 |
-| **Git**              | Any                          | Clone the repository                     | https://git-scm.com/                |
-
-### Qt Installation Notes
-
-**Qt private headers are REQUIRED!** During installation, make sure to check:
-
-- Qt 6.8.x → MSVC 2022 64-bit
-- Qt → Additional Libraries → **Qt Designer (with private headers)**
-- Qt → Additional Libraries → Qt WebEngine
-
-Verify private headers exist after installation:
+The private headers are non-negotiable. After installing, check:
 
 ```
 dir C:\Qt\6.8.0\msvc2022_64\include\QtDesigner\6.8.0\QtDesigner\private\
 ```
 
-You should see `abstractdialoggui_p.h`, `shared_settings_p.h`, and other files.
+You should see `shared_settings_p.h`, `abstractdialoggui_p.h`, etc.
 
 ---
 
@@ -82,7 +65,7 @@ You should see `abstractdialoggui_p.h`, `shared_settings_p.h`, and other files.
 
 ### 1. Install Qt SDK
 
-Download Qt Online Installer from https://www.qt.io/download and select:
+Grab the Qt Online Installer from https://www.qt.io/download and pick:
 
 ```
 Qt 6.8.0
@@ -93,60 +76,56 @@ Qt 6.8.0
   └── ...
 ```
 
-Recommended install path: `C:\Qt\6.8.0\msvc2022_64`
+Default path `C:\Qt\6.8.0\msvc2022_64` works fine.
 
-### 2. Install Node.js
-
-Download the LTS version (20.x or 24.x) from https://nodejs.org/. Verify:
+### 2. Build the C++ app
 
 ```bash
-node --version   # should print v20.x.x or v24.x.x
-npm --version    # should print 9.x.x or 10.x.x
-```
-
-### 3. Build the Project
-
-```bash
-# Clone the repository
 git clone https://github.com/YuanBaoSMadLab/DeepUIDesigner.git
 cd DeepUIDesigner
 
-# Run in Windows Command Prompt (cmd.exe):
+# Run from Windows Command Prompt (cmd.exe):
 scripts\build.bat
 
-# If Qt is installed elsewhere, set the environment variable:
+# If Qt lives somewhere else:
 set QTDIR=D:\Qt\6.8.0\msvc2022_64
 scripts\build.bat
 ```
 
-Successful build output:
+This produces `build\designer.exe` and `build\ui2html.exe`.
 
-```
-BUILD SUCCESSFUL!
-Output: build\DeepUIDesigner.exe
-```
+### 3. Build the AI core
 
-**macOS / Linux users**: Windows batch scripts are not applicable. Run manually:
+The designer launches the AI core automatically (it listens on port 9527). The Rust version is the primary backend; the Node version is the fallback:
 
 ```bash
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_PREFIX_PATH=/path/to/Qt/6.8.0/gcc_64
-cmake --build build --config Release
+# Rust core (recommended; copy the binary under ai-server/ so deploy picks it up)
+cd ai-server-rs
+cargo build --release
+copy target\release\omni-ai-server.exe ..\ai-server\omni-ai-server.exe
+cd ..
+
+# Node fallback (optional; only needed if the Rust core is missing)
+cd ai-server
+npm install
+cd ..
 ```
 
-### 4. Configure AI Backend
+> Using a release package (see [Packaging](#packaging))? Skip this whole step — both cores are already inside.
 
-#### Method A: Via the UI (Recommended)
+### 4. Deploy
 
-1. Launch `build\DeepUIDesigner.exe`
-2. Click the **Settings** button in the AI panel
-3. Enter your DeepSeek API Key (get one at https://platform.deepseek.com)
-4. Model: `deepseek-chat` (default)
-5. Save
+```bash
+scripts\deploy.bat
+```
 
-#### Method B: Edit the config file directly
+Runs windeployqt for the Qt DLLs and copies `ai-server/` (including the AI core) into `build\ai-server/`.
 
-Copy `.env.example` to `.env` and fill in your key:
+### 5. Set your API key
+
+Option A (recommended): start the app and fill in the DeepSeek API key in the AI panel's **Settings** dialog.
+
+Option B: edit the config file.
 
 ```bash
 cd build\ai-server
@@ -160,89 +139,76 @@ MODEL=deepseek-chat
 BASE_URL=https://api.deepseek.com
 ```
 
-Then install dependencies:
+> OpenAI-compatible: point `BASE_URL` at `https://api.openai.com/v1` and set `MODEL` to `gpt-4o`. DeepSeek is still the better deal, though.
+
+### 6. Run
 
 ```bash
-cd build\ai-server
-npm install
+build\designer.exe
 ```
-
-> **OpenAI compatible**: Change `BASE_URL` to `https://api.openai.com/v1` and `MODEL` to `gpt-4o`. However, DeepSeek is recommended!
-
-### 5. Run
-
-```bash
-# Launch directly
-build\Designer.exe
-
-# The AI backend may take 3–5 seconds to start on first run
-```
-
-After launching:
 
 1. Open or create a `.ui` file
 2. Select a widget on the canvas
 3. Type a request in the AI panel (e.g. "make this button blue with rounded corners")
-4. The AI modifies and refreshes the canvas automatically
+4. The AI edits the file and the canvas refreshes
+
+Give the core 3–5 seconds to boot on first launch. Closing the designer also stops the AI core.
 
 ---
 
-## Usage Guide
+## Usage
 
-### AI Conversation
+### AI conversation
 
 ```
-Select widget → Type request → AI modifies → Canvas auto-refreshes
+Select widget → Type request → AI edits → Canvas auto-refreshes
 ```
 
+| Action | How |
+| --- | --- |
+| Restyle a widget | Select it, type "make it blue with rounded corners, font 14px" |
+| Tweak layout | Select it, use the layout option in the AI panel |
+| Batch changes | Multi-select on the canvas; the AI updates them all |
+| Undo a chat's changes | **Restore to pre-chat** reverts everything from that conversation |
+| Restore a backup | **Revert** and pick a historical version |
 
-| Action                  | How                                                               |
-| ----------------------- | ----------------------------------------------------------------- |
-| Modify widget style     | Select it, then type "make it blue with rounded corners, font 14px" |
-| Adjust layout           | Select, then click 📐 Layout in the AI panel                      |
-| Batch modifications     | Multi-select on canvas; AI modifies all selected widgets at once  |
-| Revert changes          | Click **Revert to pre-chat** to undo all changes from this session |
-| Restore from backup     | Click **Revert** and choose a historical version                  |
+### Language
 
-### Quick Commands
-
-The AI panel automatically generates suggestion buttons based on the current context. You can also type freely in the input box.
-
-### Language Switching
-
-Menu bar: **Settings → Language → 简体中文**, then restart the application.
+It's Simplified Chinese out of the box — nothing to configure.
 
 ### Export
 
-Menu bar: **File → Export → HTML...** — supports HTML / JSX / TSX / Vue / XAML / .ui.
+Menu bar **File → Export → HTML...** — HTML / JSX / TSX / Vue / XAML / .ui.
 
 ---
 
-## Project Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              DeepUIDesigner.exe (C++/Qt)         │
+│              designer.exe (C++/Qt)                │
 │  ┌──────────┐ ┌───────────────────────────────┐ │
-│  │ WidgetBox │ │       MDI Design Canvas        │ │
+│  │ WidgetBox │ │       MDI design canvas       │ │
 │  └──────────┘ └───────────────────────────────┘ │
 │  ┌────────────────────────────────────────────┐ │
 │  │ ObjectInspector │ PropertyEditor           │ │
 │  ├────────────────────────────────────────────┤ │
-│  │  AI Panel (QWebEngineView)                │ │
+│  │  AI panel (QWebEngineView)                │ │
 │  │   ├── AiBridge (QWebChannel C++ ↔ JS)     │ │
-│  │   ├── NodeServer (QProcess manages Node.js)│ │
-│  │   └── FileWatcher (.ui file change monitor)│ │
+│  │   ├── NodeServer (QProcess, AI core mgmt) │ │
+│  │   └── FileWatcher (.ui change monitor)    │ │
 │  └────────────────────────────────────────────┘ │
 └───────────────────┬─────────────────────────────┘
                     │ HTTP localhost:9527
                     ▼
 ┌─────────────────────────────────────────────────┐
-│           ai-server/ (Node.js/Express)           │
-│  ├── /api/chat       SSE streaming AI chat      │
-│  ├── /api/chat/apply Apply edits + backup/revert│
-│  ├── /api/suggestions Smart suggestions         │
-│  └── /api/export     Multi-format export        │
+│  AI core (ai-server/)                            │
+│   ├── Rust version (omni-ai-server.exe, primary)│
+│   │    ├── /api/chat      SSE streaming chat    │
+│   │    ├── /api/chat/apply backups / revert     │
+│   │    ├── /api/export    multi-format export   │
+│   │    └── /api/ui        state sync            │
+│   └── Node version (TypeScript, fallback, same) │
 └────────────────────┬────────────────────────────┘
                      │ HTTPS
                      ▼
@@ -251,195 +217,155 @@ Menu bar: **File → Export → HTML...** — supports HTML / JSX / TSX / Vue / 
           └──────────────────┘
 ```
 
-### Core Data Flow
+### Core data flow
 
 ```
 User selects a widget
   → QDesignerFormWindowInterface::selectionChanged
   → AiBridge::onSelectionChanged()
   → QWebChannel pushes JSON to the web frontend
-  → Frontend displays context info
+  → frontend shows the context
 User types a request
   → POST /api/chat (SSE)
-  → DeepSeek API (streaming response)
-  → AI calls ui_read / ui_edit tools
-  → Node.js modifies .ui XML file
-  → Frontend calls aiBridge.refreshDesigner()
-  → Designer reloads file → Canvas refreshes
+  → DeepSeek API (streaming)
+  → AI calls ui_read / ui_edit tools to edit the .ui XML
+  → frontend calls aiBridge.refreshDesigner()
+  → Designer reloads the file → canvas refreshes
 ```
 
 ---
 
-## Directory Structure
+## Directory Layout
 
 ```
 DeepUIDesigner/
-├── CMakeLists.txt              # Top-level CMake build script
-├── README.md                   # This file (English)
-├── README-zh.md                # Chinese documentation
-├── .gitignore
-├── LICENSES/                   # Third-party licenses
+├── CMakeLists.txt          # top-level CMake script
+├── README.md               # this file
+├── README-zh.md            # Chinese docs
+├── LICENSES/               # third-party licenses
 │
-├── src/                        # C++ source code
-│   ├── designer/               # Qt Designer main program (37 files)
-│   │   ├── main.cpp            # ★ Entry point — language config + AI backend startup
-│   │   ├── qdesigner_workbench.cpp  # ★ Workbench — language menu
-│   │   ├── qdesigner_toolwindow.cpp # ★ Tool window — AI panel registration
-│   │   └── ...                 # Remaining Qt Designer core files
-│   ├── components/             # Designer components (196 files)
-│   │   ├── aipanel/            # ★ AI integration module
-│   │   │   ├── ai_bridge.cpp/h      # QWebChannel C++↔JS bridge
-│   │   │   ├── ai_toolwindow.cpp/h  # QWebEngineView AI chat window
-│   │   │   ├── node_server.cpp/h    # Node.js process lifecycle management
-│   │   │   └── file_watcher.cpp/h   # .ui file change monitoring
-│   │   ├── formeditor/         # Form editor
-│   │   ├── propertyeditor/     # Property editor
-│   │   ├── objectinspector/    # Object inspector
-│   │   ├── widgetbox/          # Widget box
-│   │   ├── taskmenu/           # Context menu
-│   │   ├── signalsloteditor/   # Signal/slot editor
-│   │   ├── tabordereditor/     # Tab order editor
-│   │   ├── buddyeditor/       # Buddy editor
-│   │   └── lib/                # Component library entry
-│   ├── shared/                 # Qt shared components (8 files)
-│   │   ├── fontpanel/          # Font panel
-│   │   ├── qttoolbardialog/    # Toolbar dialog
-│   │   └── helpclient/         # Help client
-│   └── lib/                    # Qt Designer private headers (115 files)
-│       ├── extension/          # Extension interfaces
-│       ├── sdk/                # SDK interfaces
-│       └── shared/             # Internal shared headers
+├── src/                    # C++ sources
+│   ├── designer/           # Qt Designer main app
+│   │   └── main.cpp        # entry: language config + AI core startup
+│   ├── components/         # Designer components
+│   │   ├── aipanel/        # AI integration
+│   │   │   ├── ai_bridge.*      # QWebChannel C++↔JS bridge
+│   │   │   ├── ai_toolwindow.*  # QWebEngineView chat panel
+│   │   │   ├── node_server.*    # AI core process mgmt (Rust first)
+│   │   │   └── file_watcher.*   # .ui change monitor
+│   │   ├── formeditor/     # form editor
+│   │   ├── propertyeditor/ # property editor
+│   │   ├── objectinspector/# object inspector
+│   │   └── ...             # remaining Designer components
+│   └── lib/                # Qt Designer private headers
 │
-├── ai-server/                  # Node.js AI backend (15 files)
-│   ├── package.json            # Dependency declaration
-│   ├── tsconfig.json           # TypeScript configuration
-│   ├── .env.example            # API key template
+├── ai-server/              # AI backend (Node fallback + frontend pages)
+│   ├── .env.example        # API key template
 │   └── src/
-│       ├── server.ts           # Express entry point (port 9527)
-│       ├── routes/
-│       │   ├── chat.ts         # AI chat core (SSE streaming + context management)
-│       │   ├── apply.ts        # Edit application + backup/revert
-│       │   └── ui-state.ts     # UI state synchronization
-│       ├── ai/
-│       │   ├── client.ts       # DeepSeek/OpenAI client
-│       │   ├── prompts.ts      # System prompt templates
-│       │   ├── ui-tools.ts     # XML precision editing engine (core algorithm)
-│       │   ├── xml-diff.ts     # XML patch parsing
-│       │   └── export.ts       # Multi-format export
-│       └── ui/
-│           ├── index.html      # AI chat panel frontend
-│           └── qwebchannel.js  # Qt WebChannel JS library
+│       ├── server.ts       # service entry (port 9527)
+│       ├── routes/         # chat / apply / ui-state routes
+│       ├── ai/             # client, prompts, XML editing tools
+│       └── ui/             # AI chat panel frontend
 │
-├── tools/                      # Auxiliary tools (3 files)
-│   ├── ui2html.cpp             # .ui → HTML converter
-│   ├── styles.h                # Style extraction
-│   └── styles.cpp
+├── ai-server-rs/           # AI core, Rust version (primary)
+│   ├── Cargo.toml
+│   └── src/
+│       ├── main.rs         # router assembly
+│       ├── chat.rs         # SSE chat + agent tool loop
+│       ├── client.rs       # DeepSeek client
+│       ├── session.rs      # layered session context
+│       ├── tools.rs        # ui_read / ui_edit / ui_write
+│       └── ...             # backups, export, state sync, etc.
 │
-├── data/                       # Data files (7 files)
-│   ├── ui4.xsd                 # .ui file XML Schema
-│   ├── generate_header.xsl     # Code generation XSL
-│   ├── generate_impl.xsl
-│   ├── generate_shared.xsl
-│   └── generate_ui.py          # Code generation script
+├── tools/                  # ui2html: .ui → HTML converter
+├── data/                   # ui4.xsd and friends
+├── resources/              # icons, etc.
 │
-├── resources/                  # Resource files
-│   ├── logo.ico                # Application icon
-│   └── designer.rc             # Windows resource file
-│
-└── scripts/                    # Build scripts
-    ├── build.bat               # Build script
-    ├── deploy.bat              # Deploy script
-    └── pack.bat                # Packaging & release script
+└── scripts/                # build/deploy scripts
+    ├── build.bat           # build
+    ├── deploy.bat          # deploy
+    ├── pack.bat            # package release
+    └── verify-rs.ps1       # Rust core smoke tests
 ```
 
 ---
 
-## Scripts Reference
+## Scripts
 
-### `scripts/build.bat` — Build
+### `scripts\build.bat` — Build
 
 ```
 Usage:
-  scripts\build.bat              # Build (Release)
-  scripts\build.bat clean        # Clean then build
+  scripts\build.bat              # Release build
+  scripts\build.bat clean        # clean, then build
 
-Environment variables:
+Env vars:
   QTDIR    Qt SDK path (default: C:\Qt\6.8.0\msvc2022_64)
 
-Process:
-  1. Set up MSVC 2022 build environment (vcvarsall.bat)
+Steps:
+  1. Set up MSVC 2022 env (vcvarsall.bat)
   2. CMake configure (Ninja, Release)
-  3. Ninja build
-  4. Output to build\DeepUIDesigner.exe + build\ui2html.exe
+  3. Build designer + ui2html
+  4. Output: build\designer.exe / build\ui2html.exe
 ```
 
-### `scripts/deploy.bat` — Deploy
+### `scripts\deploy.bat` — Deploy
 
 ```
-Usage:
-  scripts\deploy.bat
-
-Process:
+Steps:
   1. windeployqt copies Qt DLLs to build\
-  2. Copies ai-server\ to build\ai-server\
+  2. Copies ai-server\ (incl. AI core) to build\ai-server\
   3. Copies data\ to build\data\
 
-After deployment:
-  cd build\ai-server
-  npm install          # Required on first run
-  cd ..
-  DeepUIDesigner.exe          # Launch
+Dependencies:
+  ai-server\node_modules is copied along as part of the folder. After a fresh
+  clone it won't be there (it's not tracked in git) — build the core as shown
+  in "Quick Start" step 3.
 ```
 
-### `scripts/pack.bat` — Package for Release
+### `scripts\pack.bat` — Package a release
 
 ```
-Usage:
-  scripts\pack.bat
-
-Process:
-  1. Copy all files from build\
-  2. Install ai-server production dependencies (npm install --production)
-  3. Create DeepUIDesigner.bat launcher
-  4. Compress to DeepUIDesigner-v1.0.0.zip
-
-Output: DeepUIDesigner-v1.0.0.zip
+Steps:
+  1. Copy build\ into Output\DeepUIDesigner-v1.0.0\
+  2. Strip build artifacts (CMake caches, autogen, pdb, etc.)
+  3. Generate the Start-Designer.bat launcher
+  4. Zip it up as Output\DeepUIDesigner-v1.0.0.zip
 ```
+
+### `scripts\verify-rs.ps1` — Rust core smoke tests
+
+22 checks covering static pages, settings, suggestions, UI state, backup/revert, export, real AI chat, etc. Run it after touching the core; everything must go green. Add `-IncludeChat` to hit the real DeepSeek API.
 
 ---
 
-## Packaging & Release
+## Packaging
 
-Full release workflow:
+Full release flow:
 
 ```batch
-:: 1. Clean build
-scripts\build.bat clean
-
-:: 2. Deploy DLLs + AI backend
+scripts\build.bat
 scripts\deploy.bat
-
-:: 3. Package into zip
 scripts\pack.bat
 ```
 
-Package directory structure:
+You get `Output\DeepUIDesigner-v1.0.0.zip`. Unzipped, it looks like:
 
 ```
 DeepUIDesigner-v1.0.0/
-├── DeepUIDesigner.exe
-├── DeepUIDesigner.bat          ← Double-click to launch
+├── Start-Designer.bat     ← double-click to launch
+├── designer.exe
 ├── ui2html.exe
-├── Qt6*.dll             ← Qt runtime (windeployqt)
-├── platforms/           ← Qt platform plugins
-├── imageformats/        ← Image format plugins
-├── translations/        ← Qt translation files (31 languages)
-├── ai-server/           ← Node.js backend (with node_modules)
-├── data/                ← XSD files
-└── deepui.json         ← Language config file (optional)
+├── Qt6*.dll               ← Qt runtime (windeployqt)
+├── platforms/             ← Qt platform plugins
+├── imageformats/          ← image format plugins
+├── translations/          ← translation files
+├── deepui.json            ← language config
+├── data/                  ← XSD files
+└── ai-server/             ← AI core (Rust exe + Node fallback + node_modules)
 ```
 
-> **Note**: The DeepSeek API key is NOT included in the package. Users must configure it themselves.
+> The API key is never bundled. Users configure it themselves.
 
 ---
 
@@ -447,70 +373,68 @@ DeepUIDesigner-v1.0.0/
 
 ### Q: Build fails with "Qt6::CorePrivate not found"
 
-A: The Qt SDK is missing private headers. Re-run Qt Online Installer and make sure the Qt Designer component is checked.
+A: The Qt SDK is missing private headers. Re-run the Qt Online Installer and tick the Qt Designer component.
 
-### Q: AI panel shows "Unable to connect"
+### Q: The AI panel says "can't connect"
 
-A: The AI backend did not start. Check:
+A: The AI core didn't start. Check:
 
-1. Does `build\ai-server\` exist?
-2. Does `build\ai-server\node_modules\` exist? (run `npm install`)
-3. Is port 9527 already in use? `netstat -ano | findstr :9527`
+1. Does `build\ai-server\omni-ai-server.exe` exist? (if not, build it — see Quick Start step 3)
+2. Does `build\ai-server\node_modules\` exist? (needed for the Node fallback when the Rust core is absent)
+3. Is port 9527 taken? `netstat -ano | findstr :9527`
 
-### Q: The UI is in English
+### Q: The AI core still holds the port after I close the designer
 
-A: Menu bar → **Settings → Language → 简体中文**, then restart the application.
+A: Normally closing the designer kills the core too. If it was force-killed (e.g. Task Manager), something may linger — clean it up with `taskkill /F /T /PID <pid>`.
 
 ### Q: Build can't find MSVC
 
-A: Make sure to run `scripts\build.bat` from **Command Prompt (cmd.exe)**, not PowerShell or Git Bash.
+A: Run `scripts\build.bat` from **Command Prompt (cmd.exe)**, not PowerShell or Git Bash.
 
 ### Q: How do I switch AI models
 
-A: Edit `build\ai-server\.env` or use the AI panel Settings dialog to change `MODEL` and `BASE_URL`.
+A: Edit `build\ai-server\.env` or use the AI panel's Settings dialog to change `MODEL` and `BASE_URL`.
 
 - DeepSeek: `MODEL=deepseek-chat`, `BASE_URL=https://api.deepseek.com`
 - OpenAI: `MODEL=gpt-4o`, `BASE_URL=https://api.openai.com/v1`
-- Other OpenAI-compatible providers are also supported
+- Any OpenAI-compatible endpoint works
 
 ### Q: Can I build on macOS
 
-A: Theoretically yes — requires Qt for macOS (clang) + Xcode Command Line Tools. `scripts/build.bat` does not apply; use manual cmake commands. macOS build script contributions are welcome.
+A: Theoretically yes (Qt for macOS + Xcode CLT), but `scripts\build.bat` is Windows-only; you'd run cmake manually. A macOS build script would be a welcome contribution.
 
 ---
 
-## Tech Stack & Acknowledgements
+## Tech Stack & Credits
 
+| Layer | Tech |
+| --- | --- |
+| Desktop UI | C++17, Qt 6.x Widgets |
+| AI chat UI | HTML/CSS/JS, QWebEngineView |
+| C++ ↔ JS | Qt QWebChannel |
+| AI backend | Rust (axum, primary) + Node.js/TypeScript (fallback) |
+| XML editing | Direct .ui manipulation + 4-level progressive matching |
+| Build | CMake + Ninja |
 
-| Layer                  | Technology                                      |
-| ---------------------- | ----------------------------------------------- |
-| Desktop UI             | C++17, Qt 6.x Widgets                           |
-| AI Chat UI             | HTML/CSS/JS (Vanilla), QWebEngineView           |
-| C++ ↔ JS Communication | Qt QWebChannel                                  |
-| AI Backend             | Node.js, TypeScript, Express, OpenAI SDK        |
-| XML Editing            | Direct .ui file manipulation + 4-level matching |
-| Build System           | CMake 3.16+, Ninja                              |
+Built on top of / inspired by these open-source projects:
 
-This project is built upon the excellent work of these open-source projects:
-
-- **[Qt Project](https://www.qt.io/)** — Cross-platform C++ framework, Qt Designer
-- **[DeepCode CLI](https://github.com/anthropics/deepcode-cli)** — Context management and tool-calling design for AI coding assistants
-- **[Qt-to-HTML](https://github.com/ashok-s-das/Qt-to-HTML)** — .ui file to HTML converter
-- **[html-to-xaml](https://github.com/Restless-Development/html-to-xaml)** — HTML to XAML reference implementation
+- **[Qt Project](https://www.qt.io/)** — C++ framework and Qt Designer
+- **[DeepCode CLI](https://github.com/anthropics/deepcode-cli)** — context management and tool-calling design ideas
+- **[Qt-to-HTML](https://github.com/ashok-s-das/Qt-to-HTML)** — .ui to HTML converter
+- **[html-to-xaml](https://github.com/Restless-Development/html-to-xaml)** — HTML to XAML reference
 
 ---
 
 ## License
 
-The DeepUIDesigner modifications are released under **GPL-3.0**.
+DeepUIDesigner's own modifications are released under **GPL-3.0**.
 
-This software contains derivative works of the following third-party code:
+It contains derivative works of the following third-party code:
 
-
-| Component                                        | Original License                        |
-| ------------------------------------------------ | --------------------------------------- |
-| Qt Designer (src/designer/, src/components/)     | GPL-3.0-only WITH Qt-GPL-exception-1.0 |
-| DeepCode CLI design philosophy (ai-server/)      | Apache-2.0                              |
-| ui2html (tools/)                                 | LGPL-2.0+                               |
+| Component | Original license |
+| --- | --- |
+| Qt Designer (src/designer/, src/components/) | GPL-3.0-only WITH Qt-GPL-exception-1.0 |
+| DeepCode CLI design ideas (ai-server/) | Apache-2.0 |
+| ui2html (tools/) | LGPL-2.0+ |
 
 See the [LICENSES/](LICENSES/) directory for details.

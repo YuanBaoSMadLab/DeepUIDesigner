@@ -1,0 +1,26 @@
+const fs = require('fs');
+const path = require('path');
+
+console.log('');
+console.log('==========================================');
+console.log('OmniDesigner Skill Installed!');
+console.log('==========================================');
+console.log('');
+console.log('Usage:');
+console.log('  node index.js [file.ui]  - Launch OmniDesigner');
+console.log('');
+console.log('Integration with AI Agents:');
+console.log('  const { launchOmniDesigner } = require(\'omnidesigner-skill\');');
+console.log('  await launchOmniDesigner({ filePath: \'mainwindow.ui\' });');
+console.log('');
+console.log('Skill configuration:');
+console.log('  - File: skill.json');
+console.log('  - Tools: launchOmniDesigner');
+console.log('');
+console.log('Supported AI Agents:');
+console.log('  - Trae AI');
+console.log('  - Cursor');
+console.log('  - CodeLlama');
+console.log('  - Any Agent with Skill support');
+console.log('');
+console.log('==========================================');

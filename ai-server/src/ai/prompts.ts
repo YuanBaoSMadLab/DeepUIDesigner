@@ -40,7 +40,6 @@ function extractSummary(xml: string): string {
 
   const parts: string[] = [];
 
-  // Class and name
   if (classMatch) parts.push(`class=${classMatch[1]}`);
   if (nameMatch) {
     parts.push(`name="${nameMatch[1]}"`);
@@ -48,7 +47,7 @@ function extractSummary(xml: string): string {
     parts.push(`name="" (unnamed — locate by class and text)`);
   }
 
-  // Text content (most important for identification)
+  // 文本内容是对模型识别控件最有用的线索，能抓的都抓上
   const textMatch = xml.match(/<property name="text">\s*<string>([^<]*)<\/string>/);
   const titleMatch = xml.match(/<property name="title">\s*<string>([^<]*)<\/string>/);
   const wtMatch = xml.match(/<property name="windowTitle">\s*<string>([^<]*)<\/string>/);
@@ -63,12 +62,11 @@ function extractSummary(xml: string): string {
   if (tooltipMatch && tooltipMatch[1]) labels.push(`tooltip="${tooltipMatch[1]}"`);
   if (labels.length > 0) parts.push(labels.join(" "));
 
-  // Geometry (position + size)
   if (rectMatch) {
     parts.push(`rect(x=${rectMatch[1]},y=${rectMatch[2]},w=${rectMatch[3]},h=${rectMatch[4]})`);
   }
 
-  // Style (first 80 chars)
+  // styleSheet 可能很长，只截前 80 字符
   const styleMatch = xml.match(/<property name="styleSheet">\s*<string>([^<]*)<\/string>/);
   if (styleMatch && styleMatch[1]) {
     const s = styleMatch[1].replace(/\s+/g, " ").trim().substring(0, 80);

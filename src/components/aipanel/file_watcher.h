@@ -1,5 +1,4 @@
-// Omni设计师 - 文件监控
-// 监听 .UI 文件变化，通知 Designer 刷新
+// FileWatcher：盯 .ui 文件，变了就通知 Designer 重新加载
 
 #ifndef FILE_WATCHER_H
 #define FILE_WATCHER_H

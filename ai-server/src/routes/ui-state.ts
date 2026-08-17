@@ -3,7 +3,7 @@ import * as fs from "fs";
 
 const router = Router();
 
-/** 内存中保存当前 UI 状态（由前端通过 QWebChannel 获取后上报） */
+/** 内存里的当前 UI 状态。前端经 QWebChannel 上报，字段都是 camelCase（uiFilePath/selectedElement/objectTree），别改成别的命名 */
 let currentState = {
   uiFilePath: "",
   uiContent: "",
@@ -24,7 +24,7 @@ export function setUiFilePath(path: string) {
 
 /** GET /api/ui/state - 前端获取当前UI状态 */
 router.get("/state", (_req: Request, res: Response) => {
-  // 如果文件路径有效，重新读取最新内容
+  // 磁盘上的文件可能被 Qt 那边改过，先重读一遍再返回
   if (currentState.uiFilePath && fs.existsSync(currentState.uiFilePath)) {
     currentState.uiContent = fs.readFileSync(currentState.uiFilePath, "utf-8");
   }

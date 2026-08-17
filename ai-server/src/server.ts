@@ -48,13 +48,11 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// 静态文件：托管前端页面
 app.use(express.static(path.join(__dirname, "ui")));
 
-// API 路由
 app.use("/api/ui", uiStateRouter);
 app.use("/api/chat", chatRouter);
-// apply 路由直接挂载到 /api/chat，提供 /apply, /revert, /backup 端点
+// apply 路由挂同一前缀，提供 /apply, /revert, /backup 这些备份管理端点
 app.use("/api/chat", applyRouter);
 
 import { loadConfig } from "./ai/client.js";
@@ -70,10 +68,10 @@ app.get("/api/suggestions", async (req, res) => {
     // 默认静态建议（快速返回，不调用 AI）
     if (!uiContent) {
       res.json([
-        { id: "beautify", emoji: "🎨", label: "美化界面", prompt: "请美化当前界面，使用现代化的配色和间距方案" },
-        { id: "layout", emoji: "📐", label: "优化布局", prompt: "请优化当前界面的布局，调整元素间的间距和对齐" },
-        { id: "style", emoji: "🎯", label: "调整样式", prompt: "请优化元素样式，包括颜色、字体、边框等视觉效果" },
-        { id: "responsive", emoji: "📱", label: "自适应", prompt: "请调整布局支持窗口缩放，设置合理的sizePolicy" },
+        { id: "beautify", label: "美化界面", prompt: "请美化当前界面，使用现代化的配色和间距方案" },
+        { id: "layout", label: "优化布局", prompt: "请优化当前界面的布局，调整元素间的间距和对齐" },
+        { id: "style", label: "调整样式", prompt: "请优化元素样式，包括颜色、字体、边框等视觉效果" },
+        { id: "responsive", label: "自适应", prompt: "请调整布局支持窗口缩放，设置合理的sizePolicy" },
       ]);
       return;
     }
@@ -84,15 +82,15 @@ app.get("/api/suggestions", async (req, res) => {
       const hasSelection = selectedCount > 0;
       const suggestions = hasSelection
         ? [
-            { id: "style", emoji: "🎯", label: "美化选中", prompt: `请美化当前选中的 ${selectedCount} 个控件` },
-            { id: "align", emoji: "↔️", label: "对齐控件", prompt: "请将选中的控件对齐" },
-            { id: "size", emoji: "📏", label: "统一尺寸", prompt: "请将选中的控件设置为相同尺寸" },
-            { id: "spacing", emoji: "🔲", label: "调整间距", prompt: "请调整选中控件之间的间距使其均匀" },
+            { id: "style", label: "美化选中", prompt: `请美化当前选中的 ${selectedCount} 个控件` },
+            { id: "align", label: "对齐控件", prompt: "请将选中的控件对齐" },
+            { id: "size", label: "统一尺寸", prompt: "请将选中的控件设置为相同尺寸" },
+            { id: "spacing", label: "调整间距", prompt: "请调整选中控件之间的间距使其均匀" },
           ]
         : [
-            { id: "beautify", emoji: "🎨", label: "美化界面", prompt: "请美化当前界面" },
-            { id: "layout", emoji: "📐", label: "优化布局", prompt: "请优化布局" },
-            { id: "responsive", emoji: "📱", label: "自适应", prompt: "请调整为响应式" },
+            { id: "beautify", label: "美化界面", prompt: "请美化当前界面" },
+            { id: "layout", label: "优化布局", prompt: "请优化布局" },
+            { id: "responsive", label: "自适应", prompt: "请调整为响应式" },
           ];
       res.json(suggestions);
       return;
@@ -107,7 +105,7 @@ app.get("/api/suggestions", async (req, res) => {
       const resp = await client.chat.completions.create({
         model: config.model,
         messages: [
-          { role: "system", content: "你是UI设计助手。根据UI文件内容，生成4个简短的操作建议。每个建议包含: emoji(1个表情)、label(2-4字)、prompt(简短需求描述)。返回纯JSON数组。" },
+          { role: "system", content: "你是UI设计助手。根据UI文件内容，生成4个简短的操作建议。每个建议包含: label(2-4字)、prompt(简短需求描述)。不要使用emoji。返回纯JSON数组。" },
           { role: "user", content: `${selInfo}\n文件内容:\n${uiContent.substring(0, 1500)}\n\n生成4个JSON建议按钮:` },
         ],
         max_tokens: 400,
@@ -126,11 +124,11 @@ app.get("/api/suggestions", async (req, res) => {
 
     // 回退
     res.json([
-      { id: "beautify", emoji: "🎨", label: "美化", prompt: "请美化界面" },
-      { id: "layout", emoji: "📐", label: "布局", prompt: "请优化布局" },
+      { id: "beautify", label: "美化", prompt: "请美化界面" },
+      { id: "layout", label: "布局", prompt: "请优化布局" },
     ]);
   } catch {
-    res.json([{ id: "beautify", emoji: "🎨", label: "美化", prompt: "请美化界面" }]);
+    res.json([{ id: "beautify", label: "美化", prompt: "请美化界面" }]);
   }
 });
 
@@ -179,7 +177,7 @@ app.post("/api/settings", (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`🤖 Omni设计师 AI服务已启动: http://localhost:${PORT}`);
+  console.log(`[AI] Omni设计师服务已启动: http://localhost:${PORT}`);
   console.log(`   API文档: http://localhost:${PORT}/api/ui/state`);
   console.log(`   前端页面: http://localhost:${PORT}`);
 });
@@ -195,7 +193,7 @@ server.on("error", (err: NodeJS.ErrnoException) => {
   }
 });
 
-// 优雅退出：收到 SIGTERM 时关闭服务器
+// 收到 SIGTERM/SIGINT 时先关服务再退出，避免进程吊着
 process.on("SIGTERM", () => {
   console.log("收到终止信号，正在关闭服务...");
   server.close(() => {

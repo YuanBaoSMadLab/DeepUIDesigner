@@ -27,9 +27,14 @@ ai-server/dist/
 ai-server/server.log
 ai-server/.env
 
+# Rust core
+ai-server-rs/target/
+ai-server/omni-ai-server.exe
+
 # Package outputs
 OmniDER-v*.zip
 OmniDER-v*/
+Output/
 
 # OS
 .DS_Store

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Restless.Converters.Demo</AssemblyName>
+    <AssemblyTitle>Restless.Converters.Demo</AssemblyTitle>
+    <Authors>Restless Animal Development</Authors>
+    <Company>Restless Animal Development</Company>
+    <Copyright>Copyright © 2024 Restless Animal Development</Copyright>
+    <Description>Provides html to xaml and other converters</Description>
+    <OutputType>WinExe</OutputType>
+    <PackageId>Restless.Converters.Demo</PackageId>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/victor-david/restless-converters</PackageProjectUrl>
+    <PackageTags>html xaml bitmap</PackageTags>
+    <Platforms>AnyCPU</Platforms>
+    <RepositoryUrl>https://github.com/victor-david/restless-converters</RepositoryUrl>
+    <RootNamespace>Restless.Converters.Demo</RootNamespace>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Title>Restless Converters.Demo</Title>
+    <UseWPF>true</UseWPF>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Restless.Converters\Restless.Converters.csproj" />
+  </ItemGroup>
+
+</Project>

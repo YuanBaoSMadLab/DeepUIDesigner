@@ -4,7 +4,7 @@ import * as fs from "fs";
 
 const router = Router();
 
-/** POST /api/chat/apply - 直接写入内容到 .UI 文件（已弃用，现在 AI 通过 ui_edit 工具直接修改） */
+/** POST /api/chat/apply - 直接写入 .UI 文件。已弃用：AI 现在走 ui_edit/ui_write 工具，这端点留着兼容旧调用 */
 router.post("/apply", (req: Request, res: Response) => {
   const { uiFilePath, content } = req.body as {
     uiFilePath: string;
@@ -21,7 +21,6 @@ router.post("/apply", (req: Request, res: Response) => {
     return;
   }
 
-  // 如果有内容，直接写入
   if (content) {
     createBackup(uiFilePath);
     const result = writeUiFile(uiFilePath, content);

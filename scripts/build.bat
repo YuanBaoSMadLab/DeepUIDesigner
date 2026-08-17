@@ -28,6 +28,7 @@ if not exist "%QTDIR%\bin\qmake.exe" (
 )
 echo Qt SDK: %QTDIR%
 
+:: building the Designer plugin needs Qt private headers (path must match your Qt version)
 if not exist "%QTDIR%\include\QtDesigner\6.8.0\QtDesigner\private\shared_settings_p.h" (
     echo [ERROR] Qt private headers not found.
     echo   Re-run Qt Online Installer and check "Qt Designer ^(with private headers^)".
@@ -80,7 +81,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [3/4] Building DeepUIDesigner...
+echo [3/4] Building designer...
 cmake --build build --config Release
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed.
@@ -97,13 +98,13 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo =============================================
 echo   BUILD SUCCESSFUL!
-echo   DeepUIDesigner: build\DeepUIDesigner.exe
+echo   designer: build\designer.exe
 echo   ui2html: build\ui2html.exe
 echo =============================================
 echo.
 echo Next steps:
 echo   1. scripts\deploy.bat   -- deploy DLLs and AI server
 echo   2. cd build\ai-server ^&^& npm install
-echo   3. build\DeepUIDesigner.exe
+echo   3. build\designer.exe
 echo.
 pause
