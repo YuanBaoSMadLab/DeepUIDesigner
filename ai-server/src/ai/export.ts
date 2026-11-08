@@ -7,17 +7,17 @@ let jsxTransform: any;
 try {
   jsxTransform = (await import("html-to-jsx-transform")).default;
 } catch {
-  // 没装这个包就走手写转换
+  // fallback to manual
 }
 
 export function exportUi(content: string, format: string): { ok: boolean; result?: string; error?: string } {
   try {
-    // 先把 .ui 写到临时文件，ui2html 只认文件路径
+    // Write .ui content to temp file
     const tmpDir = os.tmpdir();
     const tmpUi = path.join(tmpDir, `export_${Date.now()}.ui`);
     fs.writeFileSync(tmpUi, content, "utf-8");
 
-    // 这些格式要先过一遍 ui2html.exe 转成 HTML（没装 exe 就用手写 fallback）
+    // Run ui2html for formats that need HTML first
     let html = "";
     if (["html", "jsx", "tsx", "vue", "xaml"].includes(format)) {
       const ui2htmlExe = path.join(process.env.OMNIDER_DIR || path.dirname(process.execPath || ""), "ui2html.exe");
@@ -62,8 +62,10 @@ function htmlToTsx(html: string): string {
 }
 
 function htmlToVue(html: string): string {
+  // Extract body content
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   const body = bodyMatch ? bodyMatch[1] : html;
+  // Extract styles
   const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
   return `<template>\n  ${body.trim().replace(/\n/g, "\n  ")}\n</template>\n\n<script>\nexport default {\n  name: 'App',\n};\n</script>\n${styleMatch ? `<style scoped>\n${styleMatch[1]}\n</style>\n` : ""}`;
 }

@@ -54,3 +54,7 @@ build.ninja
 # Temp
 *.tmp
 *.log
+
+# AI server local config & runtime
+ai-server/config.json
+ai-server/.omnidesigner/

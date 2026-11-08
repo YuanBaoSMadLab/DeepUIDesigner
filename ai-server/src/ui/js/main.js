@@ -1,0 +1,282 @@
+import { api, streamAgent } from "./api.js";
+import { initBridge, refreshDesigner } from "./bridge.js";
+import { state, basename, setSelection } from "./state.js";
+import { Timeline, escapeHtml } from "./render.js";
+import { initSettings, openSettings, updateModelPill, refreshSettingsSummary } from "./settings.js";
+import { initDrawer, openDrawer, refreshDrawer } from "./history.js";
+
+const $ = (id) => document.getElementById(id);
+const timeline = new Timeline($("timeline"), {
+  onDone: handleRunDone,
+  onRevertRun: handleRevertRun,
+  onOpenHistory: () => openDrawer("history"),
+  onShot: () => refreshDrawer(),
+});
+
+let toastTimer = null;
+let syncTimer = null;
+let lastSyncKey = "";
+let health = null;
+
+init();
+
+function init() {
+  initTheme();
+  initDrawer({ notify, onChanged: handleFileChanged });
+  initSettings({
+    notify,
+    onSaved: () => {
+      updateModelPill();
+      checkHealth();
+    },
+  });
+  initBridge(applyUiState);
+  window.updateUiState = applyUiState;
+
+  $("sendBtn").addEventListener("click", send);
+  $("stopBtn").addEventListener("click", stop);
+  $("clearBtn").addEventListener("click", clearChat);
+  $("attachToggle").addEventListener("change", () => {
+    state.attached = $("attachToggle").checked;
+    renderSelection();
+  });
+  $("noticeAction").addEventListener("click", openSettings);
+  $("themeBtn").addEventListener("click", toggleTheme);
+  $("userInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  checkHealth();
+  refreshSettingsSummary().then(() => updateModelPill());
+  loadServerState();
+  setInterval(checkHealth, 15000);
+}
+
+async function loadServerState() {
+  try {
+    const s = await api.getUiState();
+    if (s.uiFilePath && !state.uiFilePath) {
+      applyUiState({ uiFilePath: s.uiFilePath, selectedElement: s.selectedElement }, false);
+    }
+  } catch { /* ignore */ }
+}
+
+function applyUiState(data, sync = true) {
+  if (!data) return;
+  if (typeof data.uiFilePath === "string") state.uiFilePath = data.uiFilePath;
+  if (typeof data.uiFileContent === "string") state.uiContent = data.uiFileContent;
+  if (data.selectedElement !== undefined) setSelection(data.selectedElement);
+  renderFile();
+  renderSelection();
+  if (sync) scheduleSync();
+}
+
+function renderFile() {
+  const label = state.uiFilePath ? basename(state.uiFilePath) : "未绑定文件";
+  $("fileLabel").textContent = label;
+  $("fileLabel").title = state.uiFilePath || "";
+  $("connDot").className = `dot ${state.uiFilePath ? "online" : ""}`;
+}
+
+function renderSelection() {
+  const bar = $("selectionBar");
+  const sel = state.selection;
+  if (!sel) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const chip = $("selectionChip");
+  chip.innerHTML = sel.count > 1
+    ? `<span>${escapeHtml(sel.label)}</span>`
+    : `<span>@${escapeHtml(sel.name || sel.label)}</span><span class="chip-class">${escapeHtml(sel.className)}</span>`;
+  $("selectionHint").textContent = state.attached
+    ? "会随下一条消息发送给 Agent"
+    : "未附带，可在工具栏开关";
+  $("selLabel").textContent = sel.label;
+}
+
+function scheduleSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    const key = `${state.uiFilePath}|${state.selectedElement || ""}|${state.uiContent.length}`;
+    if (key === lastSyncKey) return;
+    lastSyncKey = key;
+    try {
+      await api.updateUiState({
+        uiFilePath: state.uiFilePath,
+        selectedElement: state.selectedElement,
+      });
+    } catch { /* 服务端状态是辅助信息 */ }
+  }, 250);
+}
+
+async function checkHealth() {
+  try {
+    health = await api.health();
+    state.connected = true;
+    const notice = $("notice");
+    if (!health.hasKey) {
+      $("noticeText").textContent = "尚未配置模型 API 密钥。Agent 需要模型接口才能工作。";
+      notice.hidden = false;
+    } else if (!health.model) {
+      $("noticeText").textContent = "尚未选择模型。";
+      notice.hidden = false;
+    } else {
+      notice.hidden = true;
+    }
+    if (!state.running) {
+      $("connDot").className = `dot ${health.hasKey ? "online" : "error"}`;
+    }
+  } catch {
+    state.connected = false;
+    $("connDot").className = "dot error";
+    $("noticeText").textContent = "AI 服务未连接，请确认 ai-server 已启动。";
+    $("notice").hidden = false;
+  }
+}
+
+async function send() {
+  if (state.running) return;
+  const input = $("userInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const attached = state.attached && !!state.selectedElement;
+  const selectionText = attached
+    ? (state.selection?.count > 1 ? state.selection.label : `@${state.selection?.name || ""} · ${state.selection?.className || ""}`)
+    : "";
+
+  timeline.addUser(text, selectionText);
+  input.value = "";
+  setRunning(true);
+
+  const controller = new AbortController();
+  state.abort = controller;
+
+  try {
+    await streamAgent({
+      message: text,
+      sessionId: state.sessionId,
+      attachSelection: attached,
+      context: {
+        uiFilePath: state.uiFilePath,
+        selectedElement: attached ? state.selectedElement : null,
+      },
+    }, (event) => {
+      if (event.type === "phase") {
+        setStatus(event.status === "start"
+          ? `${event.label}${event.detail ? ` · ${event.detail}` : ""}...`
+          : event.status === "error" ? `${event.label}失败` : `${event.label}完成`,
+        event.status === "error" ? "error" : "busy");
+      } else if (event.type === "tool_start") {
+        setStatus(`正在${event.label}...`, "busy");
+      } else if (event.type === "done") {
+        setStatus(`完成 · ${(event.timeMs / 1000).toFixed(1)}s`, event.changed ? "busy" : "");
+      } else if (event.type === "error") {
+        setStatus("运行失败", "error");
+      }
+      timeline.handle(event);
+      if (event.type === "done" || event.type === "error") setRunning(false);
+    }, controller.signal);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      timeline.addSystem("已停止");
+    } else {
+      timeline.addError(err.message || String(err));
+    }
+    setRunning(false);
+    setStatus("出错", "error");
+  } finally {
+    state.abort = null;
+    if (state.running) setRunning(false);
+  }
+}
+
+function stop() {
+  if (state.abort) state.abort.abort();
+}
+
+function setRunning(running) {
+  state.running = running;
+  $("sendBtn").disabled = running;
+  $("stopBtn").hidden = !running;
+  $("userInput").disabled = running;
+  if (!running) {
+    $("runStatus").textContent = $("runStatus").textContent || "就绪";
+    if ($("runStatus").classList.contains("busy") && !$("runStatus").textContent.startsWith("完成")) {
+      setStatus("就绪", "");
+    }
+    checkHealth();
+  }
+}
+
+function setStatus(text, kind = "") {
+  const el = $("runStatus");
+  el.textContent = text;
+  el.className = `run-status ${kind}`;
+}
+
+async function handleRunDone(event) {
+  if (event.changed) {
+    setTimeout(async () => {
+      const r = await refreshDesigner();
+      if (!r.ok) notify(`界面刷新失败：${r.error || r.text || "请手动刷新"}`);
+      handleFileChanged();
+      try {
+        const s = await api.getUiState();
+        if (s.uiFilePath) applyUiState({ uiFilePath: s.uiFilePath, selectedElement: s.selectedElement });
+      } catch { /* ignore */ }
+    }, 120);
+  }
+  setStatus(event.changed ? `完成 · 已修改 · ${(event.timeMs / 1000).toFixed(1)}s` : `完成 · ${(event.timeMs / 1000).toFixed(1)}s`, "");
+}
+
+async function handleRevertRun(runId) {
+  if (!state.uiFilePath) { notify("没有绑定文件"); return; }
+  if (!confirm("恢复到本次 Agent 运行前的文件内容？")) return;
+  try {
+    const r = await api.revertSession(state.uiFilePath, runId);
+    if (!r.ok) { notify(r.error || "回退失败"); return; }
+    notify(r.message || "已恢复");
+    await refreshDesigner();
+    handleFileChanged();
+    openDrawer("history");
+  } catch (err) {
+    notify(`回退失败：${err.message}`);
+  }
+}
+
+function handleFileChanged() {
+  if (refreshDrawer) refreshDrawer();
+  try {
+    api.getUiState().then(s => {
+      if (s.uiFilePath) applyUiState({ uiFilePath: s.uiFilePath, selectedElement: s.selectedElement });
+    }).catch(() => {});
+  } catch { /* ignore */ }
+}
+
+async function clearChat() {
+  timeline.clear();
+  try { await api.clear(state.sessionId); } catch { /* ignore */ }
+  setStatus("就绪", "");
+}
+
+function notify(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("omni-theme") || "light";
+  document.documentElement.dataset.theme = saved;
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("omni-theme", next);
+}

@@ -1,77 +1,38 @@
 export interface PromptContext {
   uiFilePath: string;
-  uiContent: string; // deprecated, kept for compat
   selectedElement: string | null;
+  selectionNames?: string[];
+  attachSelection?: boolean;
 }
 
-export function buildSystemPrompt(_ctx: PromptContext): string {
-  return `Qt .UI file editor.
+export function buildSystemPrompt(ctx: PromptContext): string {
+  const file = ctx.uiFilePath ? `当前文件: ${ctx.uiFilePath}` : "当前没有绑定 .ui 文件";
+  return `你是 OmniDesigner 的界面 Agent，直接修改 Qt .ui 文件。${file}
 
-RULES:
-1. ALWAYS call ui_read first to see the file contents.
-2. When "[Selected: ...]" appears, that is the widget to modify. Use its name as widget_name.
-3. ONLY modify the selected widget. Never touch unselected widgets.
-4. For ui_edit: copy old_string EXACTLY from ui_read output — preserve ALL whitespace/indentation.
-5. LAYOUT PROTECTION: Widgets inside layouts are wrapped in <item> tags. Never modify or remove <layout>, <item>, or sibling widget tags. Only edit content inside the target <widget>...</widget> block.
-6. For ui_write: follow the .UI XML format rules in the tool description exactly.
-7. Do NOT output XML in chat text — use tools only. Keep replies brief.`;
+工作流程（必须按顺序）：
+1. 理解需求，判断要改哪些控件；
+2. ui_read 读取文件，用 ui_selection 确认用户选中的控件；
+3. 涉及布局/新增/移动控件时，先 ui_check_layout 和 ui_screenshot 看清现状；
+4. 用 ui_set_property / ui_edit / ui_add_widget / ui_remove_widget 修改；
+5. 修改后必须再次 ui_check_layout 和 ui_screenshot 验证，发现遮挡、越界、尺寸问题就继续修；
+6. 验证通过后，用简短中文汇报改了什么、验证结果。
+
+规则：
+- 绝不把 XML 贴在回复里，只通过工具改文件。
+- 用户说“选中的控件/这个控件”时，指 ui_selection 返回的控件。
+- geometry 坐标相对父控件，格式 x,y,w,h。
+- 简单属性优先 ui_set_property；只有复杂结构才用 ui_edit。
+- 不要一次改无关控件；不要删除用户没要求删除的控件。
+- 如果截图或布局检查失败，说明原因并继续用可用工具完成。`;
 }
 
-/** 构建用户消息：将文件内容和选中元素作为对话上下文注入 */
 export function buildUserMessage(message: string, ctx: PromptContext): string {
   const parts = [message];
-  if (ctx.uiFilePath) {
-    parts.push(`[File: ${ctx.uiFilePath}. Use ui_read to see contents.]`);
+  if (ctx.attachSelection && ctx.selectedElement) {
+    const xml = ctx.selectedElement.length > 4000
+      ? ctx.selectedElement.slice(0, 4000) + "\n...(已截断)"
+      : ctx.selectedElement;
+    parts.push(`[用户已把选中控件加入对话]\n${xml}`);
   }
-  if (ctx.selectedElement) {
-    const summary = extractSummary(ctx.selectedElement);
-    if (summary) {
-      parts.push(`[Selected: ${summary}]`);
-      parts.push(`[IMPORTANT: Modify ONLY this widget. Use its name as widget_name in ui_edit.]`);
-    }
-  }
-  return parts.join("\n");
-}
-
-function extractSummary(xml: string): string {
-  const classMatch = xml.match(/class="([^"]+)"/);
-  const nameMatch = xml.match(/name="([^"]+)"/);
-  const rectMatch = xml.match(/<rect>\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\s*<\/rect>/);
-
-  const parts: string[] = [];
-
-  if (classMatch) parts.push(`class=${classMatch[1]}`);
-  if (nameMatch) {
-    parts.push(`name="${nameMatch[1]}"`);
-  } else {
-    parts.push(`name="" (unnamed — locate by class and text)`);
-  }
-
-  // 文本内容是对模型识别控件最有用的线索，能抓的都抓上
-  const textMatch = xml.match(/<property name="text">\s*<string>([^<]*)<\/string>/);
-  const titleMatch = xml.match(/<property name="title">\s*<string>([^<]*)<\/string>/);
-  const wtMatch = xml.match(/<property name="windowTitle">\s*<string>([^<]*)<\/string>/);
-  const placeholderMatch = xml.match(/<property name="placeholderText">\s*<string>([^<]*)<\/string>/);
-  const tooltipMatch = xml.match(/<property name="toolTip">\s*<string>([^<]*)<\/string>/);
-
-  const labels: string[] = [];
-  if (textMatch && textMatch[1]) labels.push(`text="${textMatch[1]}"`);
-  if (titleMatch && titleMatch[1]) labels.push(`title="${titleMatch[1]}"`);
-  if (wtMatch && wtMatch[1]) labels.push(`windowTitle="${wtMatch[1]}"`);
-  if (placeholderMatch && placeholderMatch[1]) labels.push(`placeholder="${placeholderMatch[1]}"`);
-  if (tooltipMatch && tooltipMatch[1]) labels.push(`tooltip="${tooltipMatch[1]}"`);
-  if (labels.length > 0) parts.push(labels.join(" "));
-
-  if (rectMatch) {
-    parts.push(`rect(x=${rectMatch[1]},y=${rectMatch[2]},w=${rectMatch[3]},h=${rectMatch[4]})`);
-  }
-
-  // styleSheet 可能很长，只截前 80 字符
-  const styleMatch = xml.match(/<property name="styleSheet">\s*<string>([^<]*)<\/string>/);
-  if (styleMatch && styleMatch[1]) {
-    const s = styleMatch[1].replace(/\s+/g, " ").trim().substring(0, 80);
-    parts.push(`style="${s}${styleMatch[1].length > 80 ? "..." : ""}"`);
-  }
-
-  return parts.join(" | ");
+  return parts.join("\n\n");
 }
