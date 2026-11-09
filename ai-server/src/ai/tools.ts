@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { checkLayout, summarizeTree } from "./layout.js";
-import { captureDesigner } from "./screenshot.js";
+import { captureWindow, listWindows } from "./screenshot.js";
 import {
   addWidget, applyEdit, readUiFile, removeWidget, setProperty, validateUi, widgetBlock, allWidgetNames,
 } from "./ui-tools.js";
@@ -71,7 +71,7 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
   try { args = rawArgs ? JSON.parse(rawArgs) : {}; } catch { return { ok: false, text: `工具参数不是合法 JSON: ${rawArgs.slice(0, 200)}` }; }
 
   const missing = needFile(ctx);
-  if (missing && name !== "ui_selection" && name !== "ui_screenshot") return { ok: false, text: missing };
+  if (missing && name !== "ui_selection" && name !== "ui_screenshot" && name !== "ui_windows") return { ok: false, text: missing };
 
   switch (name) {
     case "ui_read": {
@@ -152,19 +152,35 @@ export async function executeTool(name: string, rawArgs: string, ctx: ToolContex
       };
     }
 
+    case "ui_windows": {
+      const r = await listWindows();
+      if (!r.ok) return { ok: false, phase: "verify", text: `获取窗口列表失败：${r.error || "未知错误"}` };
+      const windows = (r.windows || []).slice(0, 60);
+      if (!windows.length) return { ok: true, phase: "verify", text: "当前没有找到带可见窗口的进程。" };
+      const lines = windows.map(w => `- ${w.process}: ${w.title}`);
+      return {
+        ok: true,
+        phase: "verify",
+        text: `当前窗口（可传给 ui_screenshot 的 process 或 title）：\n${lines.join("\n")}`,
+      };
+    }
+
     case "ui_screenshot": {
-      const shot = await captureDesigner();
+      const processName = typeof args.process === "string" ? args.process.trim() : "";
+      const title = typeof args.title === "string" ? args.title.trim() : "";
+      const shot = await captureWindow({ processName: processName || undefined, title: title || undefined });
       if (!shot.ok || !shot.url || !shot.path) {
         return {
           ok: false,
           phase: "verify",
-          text: `截图失败：${shot.error || "未知错误"}。请确认 designer.exe 正在运行且窗口未最小化。仍可依赖 ui_check_layout 的静态检查。`,
+          text: `截图失败：${shot.error || "未知错误"}。可先用 ui_windows 查看可用窗口，再确认目标进程或标题。仍可依赖 ui_check_layout 的静态检查。`,
         };
       }
+      const target = shot.title ? `${shot.process} / ${shot.title}` : (shot.process || "窗口");
       return {
         ok: true,
         phase: "verify",
-        text: `已截取当前设计器画面（${shot.width}x${shot.height}，${shot.method}）。请查看画面确认布局和遮挡。`,
+        text: `已截取 ${target} 的画面（${shot.width}x${shot.height}，${shot.method}）。请查看画面确认布局和遮挡。`,
         image: { path: shot.path, url: shot.url, width: shot.width, height: shot.height },
       };
     }

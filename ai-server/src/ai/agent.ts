@@ -62,6 +62,7 @@ const TOOL_LABELS: Record<string, string> = {
   ui_remove_widget: "删除控件",
   ui_check_layout: "检查布局遮挡",
   ui_screenshot: "截取界面画面",
+  ui_windows: "查找窗口",
   ui_history: "查看修改历史",
   ui_revert: "回退版本",
 };
@@ -71,6 +72,7 @@ const TOOL_PHASE: Record<string, string> = {
   ui_selection: "inspect",
   ui_check_layout: "verify",
   ui_screenshot: "verify",
+  ui_windows: "verify",
   ui_history: "inspect",
   ui_set_property: "edit",
   ui_edit: "edit",

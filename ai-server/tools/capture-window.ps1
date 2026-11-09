@@ -1,9 +1,13 @@
-param(
+﻿param(
   [string]$ProcessName = "designer",
-  [string]$OutFile = ""
+  [string]$TitleMatch = "",
+  [string]$OutFile = "",
+  [switch]$List
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = [Console]::OutputEncoding
 Add-Type -AssemblyName System.Drawing
 
 $code = @"
@@ -12,6 +16,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 public class WindowCapture {
@@ -25,13 +30,46 @@ public class WindowCapture {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
 
-    public static string Capture(string processName, string outFile) {
+    static string Esc(string s) {
+        if (s == null) return "";
+        return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ");
+    }
+
+    public static string ListWindows() {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("{\"ok\":true,\"windows\":[");
+        bool first = true;
+        foreach (var p in Process.GetProcesses()) {
+            try {
+                if (p.MainWindowHandle == IntPtr.Zero) continue;
+                string title = p.MainWindowTitle;
+                if (string.IsNullOrWhiteSpace(title)) continue;
+                if (!first) sb.Append(",");
+                first = false;
+                sb.Append("{\"process\":\"").Append(Esc(p.ProcessName)).Append("\",\"title\":\"").Append(Esc(title)).Append("\"}");
+            } catch { }
+        }
+        sb.Append("]}");
+        return sb.ToString();
+    }
+
+    public static string Capture(string processName, string titleMatch, string outFile) {
         SetProcessDPIAware();
         Process proc = null;
-        foreach (var p in Process.GetProcessesByName(processName)) {
-            if (p.MainWindowHandle != IntPtr.Zero) { proc = p; break; }
+        foreach (var p in Process.GetProcesses()) {
+            try {
+                if (p.MainWindowHandle == IntPtr.Zero) continue;
+                if (!string.IsNullOrWhiteSpace(titleMatch)) {
+                    if (p.MainWindowTitle != null && p.MainWindowTitle.IndexOf(titleMatch, StringComparison.OrdinalIgnoreCase) >= 0) { proc = p; break; }
+                } else if (!string.IsNullOrWhiteSpace(processName)) {
+                    if (string.Equals(p.ProcessName, processName, StringComparison.OrdinalIgnoreCase)) { proc = p; break; }
+                }
+            } catch { }
         }
-        if (proc == null) return "{\"ok\":false,\"error\":\"没有找到运行中的 " + processName + " 窗口\"}";
+        if (proc == null) {
+            string target = !string.IsNullOrWhiteSpace(titleMatch) ? ("标题包含 \"" + titleMatch + "\"") : ("进程 " + processName);
+            return "{\"ok\":false,\"error\":\"没有找到运行中的 " + Esc(target) + " 窗口\"}";
+        }
         IntPtr hwnd = proc.MainWindowHandle;
         if (IsIconic(hwnd)) ShowWindow(hwnd, 9);
         RECT r;
@@ -71,12 +109,19 @@ public class WindowCapture {
 
         bmp.Save(outFile, ImageFormat.Png);
         bmp.Dispose();
-        return "{\"ok\":true,\"path\":\"" + outFile.Replace("\\", "\\\\") + "\",\"width\":" + w + ",\"height\":" + h + ",\"method\":\"" + method + "\"}";
+        return "{\"ok\":true,\"path\":\"" + Esc(outFile) + "\",\"width\":" + w + ",\"height\":" + h +
+               ",\"method\":\"" + method + "\",\"process\":\"" + Esc(proc.ProcessName) +
+               "\",\"title\":\"" + Esc(proc.MainWindowTitle) + "\"}";
     }
 }
 "@
 
 Add-Type -TypeDefinition $code -ReferencedAssemblies System.Drawing
+
+if ($List) {
+    [WindowCapture]::ListWindows()
+    exit 0
+}
 
 if ([string]::IsNullOrWhiteSpace($OutFile)) {
     $dir = Join-Path $env:TEMP "omnidesigner-shots"
@@ -86,4 +131,4 @@ if ([string]::IsNullOrWhiteSpace($OutFile)) {
 $parent = Split-Path -Parent $OutFile
 if ($parent -and -not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
 
-[WindowCapture]::Capture($ProcessName, $OutFile)
+[WindowCapture]::Capture($ProcessName, $TitleMatch, $OutFile)

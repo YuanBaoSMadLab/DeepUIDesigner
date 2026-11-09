@@ -45,25 +45,6 @@ async function addFiles(fileList) {
   renderAttachments();
 }
 
-async function captureWindowAttachment() {
-  try {
-    const shot = await api.screenshot();
-    if (!shot?.ok) { notify(shot?.error || "窗口截图失败"); return; }
-    const r = await api.upload({
-      name: `窗口截图-${Date.now()}.png`,
-      type: "image/png",
-      dataUrl: shot.url,
-    });
-    if (r?.attachment) {
-      pendingAttachments.push(r.attachment);
-      renderAttachments();
-      notify("窗口截图已附加，发送时会让 Agent 验证");
-    }
-  } catch (err) {
-    notify(`窗口截图失败：${err.message}`);
-  }
-}
-
 function renderAttachments() {
   const bar = $("attachBar");
   bar.innerHTML = "";
@@ -121,7 +102,6 @@ function init() {
   $("docBtn").addEventListener("click", () => $("docInput").click());
   $("imageInput").addEventListener("change", (e) => addFiles(e.target.files));
   $("docInput").addEventListener("change", (e) => addFiles(e.target.files));
-  $("windowShotBtn").addEventListener("click", captureWindowAttachment);
   $("userInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();

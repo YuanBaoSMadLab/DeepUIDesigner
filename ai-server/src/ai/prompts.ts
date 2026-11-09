@@ -13,9 +13,10 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 1. 理解需求，判断要改哪些控件；
 2. ui_read 读取文件，用 ui_selection 确认用户选中的控件；
 3. 涉及布局/新增/移动控件时，先 ui_check_layout 和 ui_screenshot 看清现状；
-4. 用 ui_set_property / ui_edit / ui_add_widget / ui_remove_widget 修改；
-5. 修改后必须再次 ui_check_layout 和 ui_screenshot 验证，发现遮挡、越界、尺寸问题就继续修；
-6. 验证通过后，用简短中文汇报改了什么、验证结果。
+4. 需要看设计器以外的窗口（例如运行中的程序、预览窗口）时，先用 ui_windows 找目标，再用 ui_screenshot 传 process 或 title 截图；
+5. 用 ui_set_property / ui_edit / ui_add_widget / ui_remove_widget 修改；
+6. 修改后必须再次 ui_check_layout 和 ui_screenshot 验证，发现遮挡、越界、尺寸问题就继续修；
+7. 验证通过后，用简短中文汇报改了什么、验证结果。
 
 规则：
 - 绝不把 XML 贴在回复里，只通过工具改文件。

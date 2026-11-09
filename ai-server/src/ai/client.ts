@@ -142,7 +142,22 @@ export const AGENT_TOOLS: ToolDef[] = [
     type: "function",
     function: {
       name: "ui_screenshot",
-      description: "截取设计师窗口的可视化画面，用于确认实际渲染效果和遮挡情况。修改前后都应调用。",
+      description:
+        "截取窗口画面，用于查看实际渲染效果和遮挡情况。默认截取设计器窗口；也可传 process 或 title 截取其他窗口（如预览/运行中的程序）。修改前后都应调用。",
+      parameters: {
+        type: "object",
+        properties: {
+          process: P("可选。目标进程名，例如 designer、DeepUIDesigner、notepad"),
+          title: P("可选。目标窗口标题包含的文字，优先于 process"),
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ui_windows",
+      description: "列出当前所有带可见窗口的进程名和窗口标题。需要截取设计器以外的窗口（如运行中的程序）时，先用它确认目标。",
       parameters: { type: "object", properties: {} },
     },
   },
