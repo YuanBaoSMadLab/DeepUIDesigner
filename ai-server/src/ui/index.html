@@ -30,6 +30,7 @@
 
 <div class="toolbar">
   <button id="shotBtn">截图检查</button>
+  <button id="windowShotBtn">窗口截图</button>
   <button id="layoutBtn">检查布局</button>
   <button id="changesBtn">版本历史</button>
   <button id="codeBtn">编辑 .ui</button>
@@ -58,8 +59,13 @@
     </div>
 
     <div class="composer">
+      <div id="attachBar" class="attach-bar" hidden></div>
       <textarea id="userInput" rows="3" placeholder="描述你要修改的界面，例如：把选中的按钮改成主色调，并检查是否会挡住下面的输入框"></textarea>
       <div class="composer-actions">
+        <button id="imageBtn" class="ghost" title="上传图片给 Agent 查看">图片</button>
+        <input id="imageInput" type="file" accept="image/*" multiple hidden>
+        <button id="docBtn" class="ghost" title="上传文档作为上下文">文档</button>
+        <input id="docInput" type="file" accept=".txt,.md,.markdown,.json,.xml,.ui,.csv,.log,.yaml,.yml,.py,.js,.ts,.tsx,.css,.html,.sql,.cpp,.h,.qss" multiple hidden>
         <span id="runStatus" class="run-status">就绪</span>
         <span class="spacer"></span>
         <button id="stopBtn" class="danger" hidden>停止</button>

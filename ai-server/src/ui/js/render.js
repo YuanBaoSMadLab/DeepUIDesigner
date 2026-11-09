@@ -59,11 +59,31 @@ export class Timeline {
     }
   }
 
-  addUser(text, selectionText) {
+  addUser(text, selectionText, attachments = []) {
     this.hideEmpty();
     const el = document.createElement("div");
     el.className = "user-msg";
     el.textContent = text;
+    if (attachments.length) {
+      const wrap = document.createElement("div");
+      wrap.className = "msg-attachments";
+      for (const a of attachments) {
+        if (a.kind === "image" && a.dataUrl) {
+          const img = document.createElement("img");
+          img.className = "msg-image";
+          img.src = a.dataUrl;
+          img.alt = a.name || "图片";
+          img.addEventListener("click", () => openImage(a.dataUrl));
+          wrap.appendChild(img);
+        } else {
+          const chip = document.createElement("span");
+          chip.className = "msg-doc";
+          chip.textContent = `文档 · ${a.name}`;
+          wrap.appendChild(chip);
+        }
+      }
+      el.appendChild(wrap);
+    }
     if (selectionText) {
       const chip = document.createElement("div");
       chip.className = "msg-chip";

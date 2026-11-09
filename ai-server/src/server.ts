@@ -8,6 +8,7 @@ import chatRouter from "./routes/chat.js";
 import settingsRouter from "./routes/settings.js";
 import historyRouter from "./routes/history.js";
 import toolsRouter from "./routes/tools.js";
+import uploadsRouter from "./routes/uploads.js";
 import { exportUi } from "./ai/export.js";
 import { loadConfig, activeProvider } from "./ai/config.js";
 
@@ -24,6 +25,7 @@ app.use("/api/chat", chatRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/history", historyRouter);
 app.use("/api/tools", toolsRouter);
+app.use("/api/upload", uploadsRouter);
 
 app.post("/api/export", (req, res) => {
   const { content, format } = req.body as { content: string; format: string };

@@ -18,6 +18,82 @@ let syncTimer = null;
 let lastSyncKey = "";
 let health = null;
 let setupOpened = false;
+let pendingAttachments = [];
+
+function readDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error("读取文件失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  for (const file of files) {
+    if (pendingAttachments.length >= 6) { notify("最多同时附加 6 个文件"); break; }
+    try {
+      const dataUrl = await readDataUrl(file);
+      const r = await api.upload({ name: file.name, type: file.type, dataUrl });
+      if (r?.attachment) pendingAttachments.push(r.attachment);
+    } catch (err) {
+      notify(`上传失败：${err.message || file.name}`);
+    }
+  }
+  renderAttachments();
+}
+
+async function captureWindowAttachment() {
+  try {
+    const shot = await api.screenshot();
+    if (!shot?.ok) { notify(shot?.error || "窗口截图失败"); return; }
+    const r = await api.upload({
+      name: `窗口截图-${Date.now()}.png`,
+      type: "image/png",
+      dataUrl: shot.url,
+    });
+    if (r?.attachment) {
+      pendingAttachments.push(r.attachment);
+      renderAttachments();
+      notify("窗口截图已附加，发送时会让 Agent 验证");
+    }
+  } catch (err) {
+    notify(`窗口截图失败：${err.message}`);
+  }
+}
+
+function renderAttachments() {
+  const bar = $("attachBar");
+  bar.innerHTML = "";
+  if (!pendingAttachments.length) { bar.hidden = true; return; }
+  bar.hidden = false;
+  pendingAttachments.forEach((a, i) => {
+    const chip = document.createElement("div");
+    chip.className = "attach-chip";
+    if (a.kind === "image") {
+      const img = document.createElement("img");
+      img.src = a.dataUrl;
+      img.alt = a.name;
+      chip.appendChild(img);
+    }
+    const name = document.createElement("span");
+    name.className = "attach-name";
+    name.textContent = a.name;
+    chip.appendChild(name);
+    const del = document.createElement("button");
+    del.className = "attach-del";
+    del.textContent = "×";
+    del.title = "移除";
+    del.addEventListener("click", () => {
+      pendingAttachments.splice(i, 1);
+      renderAttachments();
+    });
+    chip.appendChild(del);
+    bar.appendChild(chip);
+  });
+}
 
 function init() {
   initTheme();
@@ -41,6 +117,11 @@ function init() {
   });
   $("noticeAction").addEventListener("click", openSettings);
   $("themeBtn").addEventListener("click", toggleTheme);
+  $("imageBtn").addEventListener("click", () => $("imageInput").click());
+  $("docBtn").addEventListener("click", () => $("docInput").click());
+  $("imageInput").addEventListener("change", (e) => addFiles(e.target.files));
+  $("docInput").addEventListener("change", (e) => addFiles(e.target.files));
+  $("windowShotBtn").addEventListener("click", captureWindowAttachment);
   $("userInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
@@ -144,7 +225,7 @@ async function send() {
   if (state.running) return;
   const input = $("userInput");
   const text = input.value.trim();
-  if (!text) return;
+  if (!text && !pendingAttachments.length) return;
   if (health && !health.hasKey) {
     notify("请先在设置中填写 API 密钥");
     openSettings();
@@ -156,8 +237,11 @@ async function send() {
     ? (state.selection?.count > 1 ? state.selection.label : `@${state.selection?.name || ""} · ${state.selection?.className || ""}`)
     : "";
 
-  timeline.addUser(text, selectionText);
+  const files = pendingAttachments.slice();
+  timeline.addUser(text || "（仅附件）", selectionText, files);
   input.value = "";
+  pendingAttachments = [];
+  renderAttachments();
   setRunning(true);
 
   const controller = new AbortController();
@@ -165,9 +249,10 @@ async function send() {
 
   try {
     await streamAgent({
-      message: text,
+      message: text || "请查看我附加的图片或文档，并根据内容协助我。",
       sessionId: state.sessionId,
       attachSelection: attached,
+      attachments: files,
       context: {
         uiFilePath: state.uiFilePath,
         selectedElement: attached ? state.selectedElement : null,
@@ -267,6 +352,8 @@ function handleFileChanged() {
 
 async function clearChat() {
   timeline.clear();
+  pendingAttachments = [];
+  renderAttachments();
   try { await api.clear(state.sessionId); } catch { /* ignore */ }
   setStatus("就绪", "");
 }

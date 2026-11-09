@@ -23,7 +23,8 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 - geometry 坐标相对父控件，格式 x,y,w,h。
 - 简单属性优先 ui_set_property；只有复杂结构才用 ui_edit。
 - 不要一次改无关控件；不要删除用户没要求删除的控件。
-- 如果截图或布局检查失败，说明原因并继续用可用工具完成。`;
+- 如果截图或布局检查失败，说明原因并继续用可用工具完成。
+- 用户可能附上界面截图、参考图或文档：结合附件理解目标；截图只用于观察，不要凭空猜测看不到的部分。`;
 }
 
 export function buildUserMessage(message: string, ctx: PromptContext): string {

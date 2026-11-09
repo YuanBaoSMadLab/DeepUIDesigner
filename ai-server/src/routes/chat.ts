@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { activeCredentials, activeProvider, loadConfig } from "../ai/config.js";
 import { clearSession, runAgent } from "../ai/agent.js";
+import type { UploadAttachment } from "../ai/agent.js";
 import type { PromptContext } from "../ai/prompts.js";
 
 const router = Router();
@@ -11,11 +12,12 @@ function sse(res: Response, data: unknown): void {
 }
 
 router.post("/", async (req: Request, res: Response) => {
-  const { message, context, sessionId, attachSelection } = req.body as {
+  const { message, context, sessionId, attachSelection, attachments } = req.body as {
     message: string;
     context?: PromptContext;
     sessionId?: string;
     attachSelection?: boolean;
+    attachments?: UploadAttachment[];
   };
 
   if (!message || !message.trim()) {
@@ -62,6 +64,7 @@ router.post("/", async (req: Request, res: Response) => {
     sessionId: sessionId || "default",
     message: message.trim(),
     context: ctx,
+    attachments: Array.isArray(attachments) ? attachments.slice(0, 6) : undefined,
     signal: controller.signal,
     send: (event) => {
       if (event.type === "done" || event.type === "error") finished = true;

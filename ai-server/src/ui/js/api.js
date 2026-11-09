@@ -38,6 +38,7 @@ export const api = {
 
   screenshot: (process) => request("/api/tools/screenshot", { method: "POST", body: JSON.stringify({ process }) }),
   layout: (path) => request("/api/tools/layout", { method: "POST", body: JSON.stringify({ path }) }),
+  upload: (payload) => request("/api/upload", { method: "POST", body: JSON.stringify(payload) }),
 
   clear: (sessionId) => request("/api/chat/clear", { method: "POST", body: JSON.stringify({ sessionId }) }),
 };

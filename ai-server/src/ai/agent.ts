@@ -17,6 +17,14 @@ export type AgentEvent =
   | { type: "error"; content: string }
   | { type: "done"; runId: string; timeMs: number; tokens: number; changed: boolean; verified: boolean; steps: number };
 
+export interface UploadAttachment {
+  name: string;
+  kind: "image" | "text";
+  text?: string;
+  dataUrl?: string;
+  truncated?: boolean;
+}
+
 export interface RunOptions {
   cfg: AppConfig;
   provider: Provider;
@@ -24,6 +32,7 @@ export interface RunOptions {
   sessionId: string;
   message: string;
   context: PromptContext;
+  attachments?: UploadAttachment[];
   send: (e: AgentEvent) => void;
   signal: AbortSignal;
 }
@@ -106,7 +115,36 @@ export async function runAgent(opts: RunOptions): Promise<void> {
   // 保留最近历史，丢弃图片以控制体积
   const history = state.messages.slice(-MAX_HISTORY).map(m => stripImages(m));
   messages.push(...history);
-  messages.push({ role: "user", content: user });
+
+  const attachments = opts.attachments || [];
+  const docs = attachments
+    .filter(a => a.kind === "text" && a.text)
+    .slice(0, 5)
+    .map(a => `[文档附件：${a.name}]\n${(a.text || "").slice(0, 20000)}${a.truncated ? "\n...(内容已截断)" : ""}`)
+    .join("\n\n");
+  let userText = docs ? `${user}\n\n${docs}` : user;
+
+  const images = attachments.filter(a => a.kind === "image" && a.dataUrl).slice(0, 5);
+  let userContent: string | ContentPart[] = userText;
+  if (images.length) {
+    if (provider.supportsVision) {
+      userContent = [
+        { type: "text", text: userText },
+        ...images.map(a => ({ type: "image_url" as const, image_url: { url: a.dataUrl! } })),
+      ];
+    } else {
+      const notes: string[] = [];
+      for (const a of images) {
+        const desc = await describeImage(provider, a.dataUrl!);
+        notes.push(desc
+          ? `图片「${a.name}」：${desc}`
+          : `图片「${a.name}」：当前模型未配置视觉能力，无法读取`);
+      }
+      userText += `\n\n[用户上传的图片]\n${notes.join("\n")}`;
+      userContent = userText;
+    }
+  }
+  messages.push({ role: "user", content: userContent });
 
   send({ type: "phase", id: "understand", label: "理解需求", status: "done" });
 
