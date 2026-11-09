@@ -19,8 +19,6 @@ let lastSyncKey = "";
 let health = null;
 let setupOpened = false;
 
-init();
-
 function init() {
   initTheme();
   initDrawer({ notify, onChanged: handleFileChanged });
@@ -311,3 +309,5 @@ function toggleTheme() {
   localStorage.setItem(THEME_KEY, themeMode);
   applyTheme();
 }
+
+init();
