@@ -770,3 +770,60 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-thumb { background: var(--panel-3); border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* 面板通常停靠在较窄的侧边栏，按宽度收紧布局 */
+@media (max-width: 620px) {
+  .topbar {
+    height: auto;
+    min-height: 42px;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 6px 10px;
+  }
+  .brand { display: none; }
+  .statusline { flex: 1 1 100%; order: 2; gap: 6px; }
+  .top-actions { margin-left: auto; }
+  .file-label { max-width: 55%; font-size: 12px; }
+  .sel-label, .sep { display: none; }
+  .pill { max-width: 140px; font-size: 11px; padding: 3px 8px; }
+  .top-actions .icon-btn { padding: 3px 6px; font-size: 11px; }
+
+  .notice { padding: 6px 10px; font-size: 11px; gap: 6px; }
+  .notice button { padding: 2px 8px; }
+
+  .toolbar {
+    height: auto;
+    min-height: 36px;
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .toolbar button { padding: 3px 6px; font-size: 11.5px; }
+  .switch span { display: none; }
+
+  .timeline { padding: 10px 10px 4px; gap: 10px; }
+  .empty-state { max-width: 100%; padding: 0 6px; }
+  .empty-title { font-size: 15px; }
+  .empty-state p { font-size: 12px; }
+
+  .user-msg { max-width: 94%; }
+  .run-head { padding: 7px 9px; }
+  .phase-strip { padding: 6px 9px; }
+  .phase-step { padding: 2px 6px; }
+  .run-body { padding: 8px 9px 10px; gap: 8px; }
+  .reasoning-body { max-height: 180px; padding: 0 9px 8px; }
+  .tool-out { max-height: 160px; }
+
+  .composer { padding: 8px 9px 10px; }
+  .composer textarea { min-height: 52px; max-height: 140px; }
+
+  .modal { padding: 12px 12px 10px; }
+  .grid3 { grid-template-columns: 1fr; }
+  .drawer { width: 100vw; }
+  .code-editor { height: calc(100vh - 170px); }
+}
+

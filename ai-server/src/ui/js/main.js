@@ -17,6 +17,7 @@ let toastTimer = null;
 let syncTimer = null;
 let lastSyncKey = "";
 let health = null;
+let setupOpened = false;
 
 init();
 
@@ -117,8 +118,13 @@ async function checkHealth() {
     state.connected = true;
     const notice = $("notice");
     if (!health.hasKey) {
-      $("noticeText").textContent = "尚未配置模型 API 密钥。Agent 需要模型接口才能工作。";
+      $("noticeText").textContent = "尚未配置 API 密钥，填写后即可使用 Agent。";
+      $("noticeAction").textContent = "填写密钥";
       notice.hidden = false;
+      if (!setupOpened && !state.running) {
+        setupOpened = true;
+        setTimeout(() => { if ($("settingsModal").hidden) openSettings(); }, 600);
+      }
     } else if (!health.model) {
       $("noticeText").textContent = "尚未选择模型。";
       notice.hidden = false;
@@ -141,6 +147,11 @@ async function send() {
   const input = $("userInput");
   const text = input.value.trim();
   if (!text) return;
+  if (health && !health.hasKey) {
+    notify("请先在设置中填写 API 密钥");
+    openSettings();
+    return;
+  }
 
   const attached = state.attached && !!state.selectedElement;
   const selectionText = attached
@@ -270,13 +281,33 @@ function notify(text) {
   toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
 }
 
+const THEME_KEY = "omni-theme-v2";
+const THEME_ORDER = ["auto", "dark", "light"];
+const themeMedia = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+let themeMode = localStorage.getItem(THEME_KEY) || "auto";
+
+function effectiveTheme() {
+  if (themeMode === "auto") return themeMedia?.matches ? "dark" : "light";
+  return themeMode;
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = effectiveTheme();
+  const btn = $("themeBtn");
+  btn.textContent = themeMode === "auto" ? "主题·自动" : themeMode === "dark" ? "主题·深色" : "主题·浅色";
+  btn.title = "自动跟随系统 / 深色 / 浅色（点击切换）";
+}
+
 function initTheme() {
-  const saved = localStorage.getItem("omni-theme") || "light";
-  document.documentElement.dataset.theme = saved;
+  if (!THEME_ORDER.includes(themeMode)) themeMode = "auto";
+  applyTheme();
+  themeMedia?.addEventListener?.("change", () => {
+    if (themeMode === "auto") applyTheme();
+  });
 }
 
 function toggleTheme() {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("omni-theme", next);
+  themeMode = THEME_ORDER[(THEME_ORDER.indexOf(themeMode) + 1) % THEME_ORDER.length];
+  localStorage.setItem(THEME_KEY, themeMode);
+  applyTheme();
 }
